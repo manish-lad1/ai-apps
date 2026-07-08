@@ -1,70 +1,36 @@
-# 🧠 PM Agent
-
-> Give it a PRD — get Jira tickets, a comms plan, and a risk summary. Automatically.
-
----
-
-## What it does
-
-PM Agent is an autonomous AI agent built for product management workflows. Feed it a Product Requirements Document (PRD) and it will:
-
-- 🎫 **Generate Jira-ready tickets** — epics, stories, and tasks with acceptance criteria
-- 📣 **Draft a comms plan** — stakeholder update, launch announcement, team brief
-- ⚠️ **Surface risks** — flags assumptions, dependencies, and open questions from the PRD
-
-Built with Claude's tool use API — the agent decides what to do and in what order, not a hardcoded pipeline.
-
----
-
-## Tech Stack
-
-- **Claude API** (tool use / agents)
-- **Next.js** — frontend
-- **Supabase** — storage
-- **TypeScript**
-
----
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
+First, run the development server:
+
 ```bash
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Add your keys to .env
-
-# Run locally
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
----
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Environment Variables
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-See `.env.example` for all required variables.
+## Learn More
 
-| Variable | Description |
-|---|---|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key |
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_ANON_KEY` | Your Supabase anon key |
+To learn more about Next.js, take a look at the following resources:
 
----
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## How to Extend This
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-- Add a **Jira integration** to push tickets directly via the Jira REST API
-- Add **Slack output** to post the comms plan to a channel
-- Support **multiple input formats** — meeting notes, user research, feature requests
-- Add an **eval layer** to score ticket quality
+## Deploy on Vercel
 
----
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Related
-
-- 📬 Newsletter writeup: *coming soon on [AI from the Inside](https://manishlad.substack.com)*
-- 🗂️ Back to [all projects](../../README.md)
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
