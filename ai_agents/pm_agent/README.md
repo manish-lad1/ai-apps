@@ -1,4 +1,4 @@
-# PM Agent
+# PRD Critique Agent
 
 **From a rough idea to a review-ready PRD** — an agent that drafts a PRD from a messy feature idea, critiques its own draft against a product-review rubric, then rewrites it to fix what it found.
 
@@ -56,7 +56,7 @@ components/
 
 ```bash
 git clone https://github.com/manish-lad1/ai-apps.git
-cd ai-apps/ai_agents/pm-agent
+cd ai-apps/ai_agents/prd-critique-agent
 npm install
 cp .env.example .env.local
 ```

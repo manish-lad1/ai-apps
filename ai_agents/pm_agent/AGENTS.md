@@ -1,4 +1,4 @@
-# Agent guide — PM Agent
+# Agent guide — PRD Critique Agent
 
 Project-specific context for AI coding agents (Claude Code, Cursor, etc.) working on this repo. If you're a human, the [README](./README.md) is the better starting point — this file is about *how to work on the code*, not what it does for end users.
 
@@ -61,4 +61,4 @@ Treat a clean `npm run build` as the minimum bar before calling a change finishe
 
 ## Testing changes
 
-There's no automated test suite (by design, for a portfolio-scoped project) — instead there's a flaw-based eval set (`pm-agent-eval.xlsx`, kept alongside this project during development, not committed) with 10 inputs, each with deliberately planted issues the critique step should catch. If you're changing prompts or schemas, a quick way to sanity-check impact is running a couple of those inputs through both providers before and after your change, rather than relying on a single manual test.
+There's no automated test suite (by design, for a portfolio-scoped project) — instead there's a flaw-based eval set (`prd-critique-agent-eval.xlsx`, kept alongside this project during development, not committed) with 10 inputs, each with deliberately planted issues the critique step should catch. If you're changing prompts or schemas, a quick way to sanity-check impact is running a couple of those inputs through both providers before and after your change, rather than relying on a single manual test.
