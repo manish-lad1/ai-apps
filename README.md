@@ -22,13 +22,27 @@ Each build also gets a writeup in my newsletter **[AI from the Inside](https://m
 
 ---
 
+## 🏷️ Naming Convention
+
+Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first part names what it does, the suffix names how it's built, so the architecture is visible from the folder name alone, before opening the README.
+
+| Suffix | Signals | Lives in |
+|---|---|---|
+| `_agent` | A single AI agent, possibly multi-step internally | `ai_agents/` |
+| `_crew` | Multiple distinct, cooperating or debating agents | `ai_agents/` |
+| `_rag` | Retrieval-augmented generation | `rag_apps/` |
+| `_mcp` | An MCP server — exposes tools, not itself an agent | `mcp_apps/` |
+| *(plain name)* | A general utility app, AI-driven or not | `utility_apps/` |
+
+---
+
 ## 📂 Projects
 
 ### 🤖 AI Agents
 
 | Project | What it does | Stack |
 |---|---|---|
-| [🧠 PM Agent](./ai_agents/pm_agent/) | Give it a PRD → get Jira tickets, a comms plan, and a risk summary | Claude API, Tool Use, Next.js |
+| [🧠 PRD Critique Agent](./ai_agents/prd_critique_agent/) | Drafts a PRD from a rough idea, critiques its own draft against a PM review rubric, then refines it — every stage visible, runs on a local model or the Claude API | Claude API, Ollama, Next.js |
 
 ---
 
@@ -36,7 +50,7 @@ Each build also gets a writeup in my newsletter **[AI from the Inside](https://m
 
 | Project | What it does | Stack |
 |---|---|---|
-| [📚 PM Knowledge Base](./rag_apps/pm_knowledge_base/) | Ask questions across PM frameworks, articles, and newsletter archives | Claude API, RAG, Embeddings |
+| 🚧 Coming soon | — | — |
 
 ---
 
@@ -52,8 +66,7 @@ Each build also gets a writeup in my newsletter **[AI from the Inside](https://m
 
 | Project | What it does | Stack |
 |---|---|---|
-| [💰 Finance Tracker](./utility_apps/finance_tracker/) | Track income, expenses, goals — with a natural language query layer | Next.js, Supabase, Claude API |
-| [🤝 Split Smart](./utility_apps/split_smart/) | Split expenses with friends using natural language | Next.js, Supabase, Claude API |
+| 🚧 Coming soon | — | — |
 
 ---
 
