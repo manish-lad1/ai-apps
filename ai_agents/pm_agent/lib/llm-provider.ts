@@ -143,7 +143,14 @@ async function generateWithAnthropic<T>({
 
   const response = await client.messages.create({
     model,
-    max_tokens: 4096,
+    // Claude Sonnet 5 runs with "adaptive thinking" on by default, and
+    // max_tokens is a hard cap on thinking + response text COMBINED — so an
+    // unbudgeted thinking pass can silently eat the token budget meant for
+    // the JSON response, truncating it mid-string. We don't need hidden
+    // reasoning here (the critique step already makes reasoning visible by
+    // design), so turn it off and give the full budget to the response.
+    thinking: { type: "disabled" },
+    max_tokens: 8192,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
     // Structured Outputs: constrains Claude's response to match this JSON
@@ -165,5 +172,12 @@ async function generateWithAnthropic<T>({
     throw new Error("Expected a text block in Claude's response but found none.");
   }
 
-  return { raw: textBlock.text, parsed: JSON.parse(textBlock.text) as T };
+  try {
+    return { raw: textBlock.text, parsed: JSON.parse(textBlock.text) as T };
+  } catch {
+    throw new Error(
+      `Claude returned invalid JSON (stop_reason: ${response.stop_reason}). This usually means the response was ` +
+        `truncated — try raising max_tokens in lib/llm-provider.ts. First 200 chars: ${textBlock.text.slice(0, 200)}`
+    );
+  }
 }
