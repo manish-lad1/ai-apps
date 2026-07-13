@@ -89,3 +89,4 @@ yarn-error.log*
 .turbo
 coverage/
 .nyc_output/
+.claude/worktrees/

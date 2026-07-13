@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/*
+ * Visual identity: "Signal" — steel/ink surfaces, hard edges, no
+ * border-radius, monospace labels, one loud accent (signal orange) used
+ * sparingly for actions and emphasis. Deliberately not the
+ * cream-background/serif/terracotta look common to AI-generated UIs.
+ */
+:root {
+  --ink: #101826;
+  --muted: #57708c;
+  --paper: #e9eef5;
+  --surface: #ffffff;
+  --line: #101826;
+  --line-soft: #c3cedd;
+  --accent: #ff5a1f;
+  --accent-ink: #101826;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Default: follow the system/browser preference until the user picks
+ * explicitly via ThemeToggle. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e7ecf3;
+    --muted: #93a4bd;
+    --paper: #0a1120;
+    --surface: #101a2c;
+    --line: #33455f;
+    --line-soft: #22314a;
+    --accent: #ff7a3d;
+    --accent-ink: #0a1120;
+  }
+}
+
+/* Explicit user choice (ThemeToggle) — wins over prefers-color-scheme
+ * regardless of system setting, since [data-theme] has higher specificity
+ * than the bare :root rules above. */
+:root[data-theme="light"] {
+  --ink: #101826;
+  --muted: #57708c;
+  --paper: #e9eef5;
+  --surface: #ffffff;
+  --line: #101826;
+  --line-soft: #c3cedd;
+  --accent: #ff5a1f;
+  --accent-ink: #101826;
+}
+
+:root[data-theme="dark"] {
+  --ink: #e7ecf3;
+  --muted: #93a4bd;
+  --paper: #0a1120;
+  --surface: #101a2c;
+  --line: #33455f;
+  --line-soft: #22314a;
+  --accent: #ff7a3d;
+  --accent-ink: #0a1120;
+}
+
+* {
+  border-radius: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background-image: linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
