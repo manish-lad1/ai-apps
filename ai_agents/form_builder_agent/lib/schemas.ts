@@ -121,6 +121,27 @@ export const formSpecSchema: Record<string, unknown> = {
   additionalProperties: false,
 };
 
+/** The shape the MODEL produces for a refine step: the updated spec plus a
+ *  one-line human-readable confirmation of what changed. */
+export type ModelRefineResult = {
+  spec: ModelFormSpec;
+  summary: string;
+};
+
+export const refineResultSchema: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    spec: formSpecSchema,
+    summary: {
+      type: "string",
+      description:
+        "One short, plain-language sentence confirming what changed, e.g. 'Added a required phone field.' or 'Made email required.'",
+    },
+  },
+  required: ["spec", "summary"],
+  additionalProperties: false,
+};
+
 /**
  * Strips generated `id`s before sending a spec back to the model. The model
  * never produced them, so it shouldn't be asked to track or preserve them —

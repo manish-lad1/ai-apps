@@ -1,10 +1,10 @@
 import { generateStructured } from "@/lib/llm-provider";
 import {
-  formSpecSchema,
+  refineResultSchema,
   stripIds,
   withGeneratedIds,
   type FormSpec,
-  type ModelFormSpec,
+  type ModelRefineResult,
 } from "@/lib/schemas";
 import { REFINE_SYSTEM, refineUserPrompt } from "@/lib/prompts";
 
@@ -21,13 +21,13 @@ export async function POST(request: Request) {
       return Response.json({ error: "Please provide an instruction." }, { status: 400 });
     }
 
-    const modelSpec = await generateStructured<ModelFormSpec>({
+    const result = await generateStructured<ModelRefineResult>({
       systemPrompt: REFINE_SYSTEM,
       userPrompt: refineUserPrompt(stripIds(spec), instruction),
-      schema: formSpecSchema,
+      schema: refineResultSchema,
     });
 
-    return Response.json({ spec: withGeneratedIds(modelSpec) });
+    return Response.json({ spec: withGeneratedIds(result.spec), summary: result.summary });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unexpected error.";
     return Response.json({ error: message }, { status: 500 });

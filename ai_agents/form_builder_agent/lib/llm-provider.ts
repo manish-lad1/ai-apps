@@ -25,6 +25,7 @@ export async function generateStructured<T>(
   args: GenerateStructuredArgs
 ): Promise<T> {
   const provider = process.env.LLM_PROVIDER ?? "anthropic";
+  console.log("[llm-provider] using:", process.env.LLM_PROVIDER);
   const call = provider === "ollama" ? generateWithOllama<T> : generateWithAnthropic<T>;
 
   // Eval testing found two real degeneration modes — token-repetition loops

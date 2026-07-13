@@ -26,7 +26,9 @@ Rules:
 - Keep everything not mentioned in the instruction exactly as it was.
 - Do not include an "id" for any field — that's handled separately.
 
-Return the complete, updated form spec — not just the changed parts.`;
+Return an object with:
+- "spec": the complete, updated form spec — not just the changed parts.
+- "summary": one short, plain-language sentence confirming what you changed (e.g. "Added a required phone field."), addressed directly to the person who gave the instruction.`;
 
 export function refineUserPrompt(currentSpec: ModelFormSpec, instruction: string): string {
   return `Here is the current form spec:\n\n"""\n${JSON.stringify(currentSpec, null, 2)}\n"""\n\nApply this instruction:\n\n"""\n${instruction}\n"""`;
