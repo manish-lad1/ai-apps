@@ -18,6 +18,18 @@ and to make the MCP mechanics (tool calls, arguments, raw results) visible inste
 hiding them behind a chat bubble — it has no logic of its own beyond spawning the server
 and running a tool-calling loop.
 
+## Demo
+
+*(screenshot or short GIF of the chat panel + tool trace side-by-side — this is the
+most differentiated part of the project, worth showing rather than describing)*
+
+## Requirements
+
+- Node.js 20+
+- (Optional) A GitHub personal access token with `public_repo` read scope — [create one
+  here](https://github.com/settings/tokens). Without it, the server runs fine but is
+  capped at GitHub's unauthenticated rate limit (60 req/hr vs. 5,000 with a token).
+
 ## Quick start
 
 ```bash
@@ -30,6 +42,7 @@ npm run build
 cd ../demo-ui
 npm install
 cp .env.example .env.local   # fill in ANTHROPIC_API_KEY, or leave LLM_PROVIDER=ollama
+                              # optionally set GITHUB_TOKEN to raise the rate limit
 npm run dev
 ```
 
