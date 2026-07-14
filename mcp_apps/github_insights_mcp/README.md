@@ -1,4 +1,4 @@
-# github_insights_mcp
+# GitHub Insights MCP
 
 An MCP server that exposes **read-only GitHub repo insight tools**, plus a reference chat
 UI that shows it working end-to-end with an LLM deciding which tools to call.
