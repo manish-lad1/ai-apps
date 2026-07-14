@@ -20,9 +20,7 @@ and running a tool-calling loop.
 
 ## Demo
 
-*(screenshot or short GIF of the chat panel + tool trace side-by-side — this is the
-most differentiated part of the project, worth showing rather than describing)*
-
+![Demo of github_insights_mcp](./demo.gif)
 ## Requirements
 
 - Node.js 20+
