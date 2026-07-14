@@ -20,7 +20,7 @@ and running a tool-calling loop.
 
 ## Demo
 
-<img src="./demo.gif" width="900" alt="Demo of github_insights_mcp" />
+<img src="./demo.gif" width="1200" alt="Demo of github_insights_mcp" />
 
 ## Requirements
 
