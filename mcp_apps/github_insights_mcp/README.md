@@ -20,7 +20,8 @@ and running a tool-calling loop.
 
 ## Demo
 
-![Demo of github_insights_mcp](./demo.gif)
+<img src="./demo.gif" width="900" alt="Demo of github_insights_mcp" />
+
 ## Requirements
 
 - Node.js 20+
