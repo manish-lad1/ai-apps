@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                       */
+/* Concept: "the wire" — chat up top, raw MCP tool calls visible below, */
+/* so the protocol mechanics are never hidden behind a black box.       */
+/* ------------------------------------------------------------------ */
+:root {
+  --paper: #f7f7f8;
+  --card: #ffffff;
+  --ink: #16181d;
+  --ink-soft: #454b58;
+  --muted: #767c89;
+  --line: #e6e7eb;
+  --line-strong: #d3d5dc;
+
+  --accent: #1f6feb;
+  --accent-bg: #eaf2fe;
+
+  --tool-bg: #0f1117;
+  --tool-border: #262a33;
+  --tool-ink: #d7dae1;
+  --tool-muted: #8b909c;
+
+  --error: #c8324b;
+  --error-bg: #fbeaee;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco,
+    "Cascadia Code", Consolas, monospace;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-tool-bg: var(--tool-bg);
+  --color-tool-border: var(--tool-border);
+  --color-tool-ink: var(--tool-ink);
+  --color-tool-muted: var(--tool-muted);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

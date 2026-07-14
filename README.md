@@ -59,7 +59,7 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 
 | Project | What it does | Stack |
 |---|---|---|
-| 🚧 Coming soon | — | — |
+| [🔍 GitHub Insights MCP](./mcp_apps/github_insights_mcp/) | A read-only MCP server exposing GitHub repo insight tools (structure, activity, issues/PRs) to any MCP client, plus a demo chat UI that spawns it and shows the LLM's tool calls live | TypeScript, `@modelcontextprotocol/sdk`, Octokit, Next.js |
 
 ---
 
