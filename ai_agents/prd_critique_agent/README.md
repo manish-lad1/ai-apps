@@ -76,7 +76,7 @@ Get a key at [console.anthropic.com](https://console.anthropic.com). A full draf
 ### Option B — Local model via Ollama (free)
 
 ```bash
-ollama pull gemma3:12b   # or another model of your choice
+ollama pull gemma4:12b   # or another model of your choice
 ```
 
 ```env

@@ -87,13 +87,13 @@ Get a key at [console.anthropic.com](https://console.anthropic.com).
 ### Option B — Local model via Ollama (free)
 
 ```bash
-ollama pull gemma3:12b   # or another model of your choice
+ollama pull gemma4:12b   # or another model of your choice
 ```
 
 ```env
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma3:12b
+OLLAMA_MODEL=gemma4:12b
 ```
 
 > **Model note:** prefer models *without* a "thinking"/reasoning mode for local use (e.g. `gemma3`, not `gemma4`). Reasoning-mode models can leak internal thinking tokens into schema-constrained JSON, corrupting the output — see [Key concepts](#key-concepts-learned-building-this) below. The degeneration guard catches this, but a non-reasoning model avoids it entirely.

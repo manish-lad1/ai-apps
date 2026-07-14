@@ -43,6 +43,7 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 | Project | What it does | Stack |
 |---|---|---|
 | [🧠 PRD Critique Agent](./ai_agents/prd_critique_agent/) | Drafts a PRD from a rough idea, critiques its own draft against a PM review rubric, then refines it — every stage visible, runs on a local model or the Claude API | Claude API, Ollama, Next.js |
+| [🧾 Form Builder Agent](./ai_agents/form_builder_agent/) | Turns a plain-language description into a live, working form — refine it conversationally, then export as React or HTML | Claude API, Ollama, Next.js |
 
 ---
 
