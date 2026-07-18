@@ -4,7 +4,9 @@
 
 > Part of [ai-apps](../../) — a collection of open, forkable AI apps by [Manish Lad](https://manishlad.substack.com).
 
-<!-- Add a demo GIF or screenshot here once deployed -->
+## Demo
+
+<img src="./demo.gif" width="1200" alt="Demo of knowledge_base_rag" />
 
 ## What it does
 
@@ -14,10 +16,6 @@ It has two modes that share one pipeline (chunk → embed → retrieve → gener
 
 1. **Newsletter & portfolio (built-in)** — pre-indexed with the newsletter archive and every README in this repo. Ask *"what has this author written about evals?"* and get an answer grounded in the actual article, cited back to the section it came from.
 2. **Upload your own (session)** — drop in `.md` / `.txt` / `.pdf` files or paste article URLs, and the app builds an **ephemeral, session-scoped** knowledge base to answer against. Nothing persists: no database, no server-side storage keyed to you. Close the tab or restart the server and it's gone — by design.
-
-## Demo
-
-<img src="./demo.gif" width="1200" alt="Demo of knowledge_base_rag" />
 
 ## Requirements
 
