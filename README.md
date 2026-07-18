@@ -80,7 +80,7 @@ Each project is self-contained. The general flow for any project:
 git clone https://github.com/manish-lad1/ai-apps.git
 
 # 2. Navigate to the project you want
-cd ai-apps/utility_apps/finance_tracker
+cd ai-apps/rag_apps/knowledge_base_rag
 
 # 3. Install dependencies
 npm install          # for Next.js projects
