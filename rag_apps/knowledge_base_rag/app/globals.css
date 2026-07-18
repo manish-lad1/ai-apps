@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                       */
+/* Concept: "the reading room" — a calm, paper-toned surface where a   */
+/* grounded answer sits above the sources it was drawn from. Mono-      */
+/* forward labels echo the sibling projects; a single indigo accent    */
+/* marks retrieval / citations.                                        */
+/* ------------------------------------------------------------------ */
+:root {
+  --paper: #fafafb;
+  --card: #ffffff;
+  --ink: #171a21;
+  --ink-soft: #454b58;
+  --muted: #767c89;
+  --line: #e7e8ee;
+  --line-strong: #d5d7e0;
+
+  --accent: #4f46e5;      /* indigo — retrieval / citations */
+  --accent-bg: #eef0fe;
+  --accent-soft: #6366f1;
+
+  --good: #0e7c6b;        /* teal — grounded / success */
+  --warn: #b5771a;        /* amber — no-context / caution */
+  --danger: #c8324b;      /* red — errors */
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco,
+    "Cascadia Code", Consolas, monospace;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-bg: var(--accent-bg);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* mono utility labels used throughout for structure */
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* answer reveal animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* thinking dots */
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+.dot {
+  animation: blink 1.4s infinite both;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
+  .dot { animation: none; }
+}
