@@ -42,4 +42,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# built-in corpus embeddings — a build artifact, and provider-specific
+# (Ollama vs Voyage produce different vectors). Regenerate with `npm run ingest`.
+/data/embeddings.json
+
 .claude/worktrees/

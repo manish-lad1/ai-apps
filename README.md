@@ -51,7 +51,7 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 
 | Project | What it does | Stack |
 |---|---|---|
-| 🚧 Coming soon | — | — |
+| [📚 Knowledge Base RAG](./rag_apps/knowledge_base_rag/) | Retrieval-augmented Q&A that answers only from retrieved passages and cites every claim — ask a built-in newsletter + repo corpus, or upload your own files/URLs into an ephemeral session KB | Claude API, Voyage, Ollama, Next.js |
 
 ---
 
