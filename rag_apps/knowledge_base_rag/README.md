@@ -47,6 +47,7 @@ Then pick a path.
 ollama pull nomic-embed-text   # embeddings
 ollama pull gemma4:12b         # generation (any chat model works)
 ```
+> **Model note:** prefer models *without* a "thinking"/reasoning mode for local use (e.g. `gemma3`, not `gemma4`). Reasoning-mode models can leak internal thinking tokens into schema-constrained JSON, corrupting the output — see [Key concepts](#key-concepts-learned-building-this) below. The degeneration guard catches this, but a non-reasoning model avoids it entirely.
 
 ```env
 # .env.local
