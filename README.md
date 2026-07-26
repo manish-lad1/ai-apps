@@ -1,6 +1,6 @@
 # 🤖 AI Apps by Manish Lad
 
-> A collection of AI apps built by an AI PM — agents, RAG systems, MCP servers, and utility tools.
+> A collection of AI apps built by an AI PM — agents, pipelines, crews, RAG systems, MCP servers, and utility tools.
 > Practical, forkable, and built to learn from.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -28,11 +28,18 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 
 | Suffix | Signals | Lives in |
 |---|---|---|
-| `_agent` | A single AI agent, possibly multi-step internally | `ai_agents/` |
-| `_crew` | Multiple distinct, cooperating or debating agents | `ai_agents/` |
+| `_agent` | A single AI agent, possibly multi-step internally (e.g. a draft → self-critique → refine loop) | `ai_agents/` |
+| `_crew` | Multiple distinct agents contesting or debating the *same* question at the same level — symmetric, order-independent | `crew_apps/` |
+| `_pipeline` | Multiple distinct agents passing an artifact forward through fixed, ordered stages — may include human approval gates or asymmetric generator/critic loops within a stage | `pipeline_apps/` |
 | `_rag` | Retrieval-augmented generation | `rag_apps/` |
 | `_mcp` | An MCP server — exposes tools, not itself an agent | `mcp_apps/` |
 | *(plain name)* | A general utility app, AI-driven or not | `utility_apps/` |
+
+**Telling `_agent`, `_crew`, and `_pipeline` apart:**
+- One model looping with itself (draft → critique → refine) is still `_agent` — the loop is internal to a single agent's process.
+- `_pipeline` is forward-only: each stage hands its output to the next, agents don't see each other's reasoning, and order matters. A pipeline stage can still contain a human approval gate, or an asymmetric generator/critic loop (one agent drafts, another reviews and sends it back) — that's still forward motion, just paused or cycled within a stage.
+- `_crew` is peer contest: agents engage the same artifact at the same level, and the result is a genuine function of their disagreement — removing one doesn't shorten the process, it changes what the answer means.
+- Agents fanning out to work independent sub-questions in parallel, then getting aggregated (no interaction between them), is *decomposition* — a sub-pattern that lives inside a `_pipeline` stage, not a suffix of its own.
 
 ---
 
@@ -44,6 +51,14 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 |---|---|---|
 | [🧠 PRD Critique Agent](./ai_agents/prd_critique_agent/) | Drafts a PRD from a rough idea, critiques its own draft against a PM review rubric, then refines it — every stage visible, runs on a local model or the Claude API | Claude API, Ollama, Next.js |
 | [🧾 Form Builder Agent](./ai_agents/form_builder_agent/) | Turns a plain-language description into a live, working form — refine it conversationally, then export as React or HTML | Claude API, Ollama, Next.js |
+
+---
+
+### 🔀 Pipeline Apps
+ 
+| Project | What it does | Stack |
+|---|---|---|
+| [🧩 Idea Research Pipeline](./pipeline_apps/idea_research_pipeline/) | Turns a product idea into an approved research plan, fans out parallel agents to research each question, then generates a report that critiques and revises itself before flagging contradictions across sources | Claude API, Ollama, Next.js |
 
 ---
 
