@@ -17,7 +17,7 @@
     4. the final report — a flagged contradiction, and ideally an escalated run
 -->
 
-_Demo GIF pending._
+![Demo](./image.jpeg)
 
 ## What it does
 
