@@ -58,7 +58,7 @@ The two are chosen independently, so any combination works. The two most useful:
 
 | | LLM | Search | Cost |
 |---|---|---|---|
-| **Local dev** | Ollama `gemma3:12b` | Tavily free tier | Free |
+| **Local dev** | Ollama `gemma4:12b` | Tavily free tier | Free |
 | **Production** | Claude `claude-opus-5` | Claude's `web_search` tool | API usage |
 
 ## Quick start
@@ -75,7 +75,7 @@ Then pick a path.
 ### Path A — free local dev (Ollama + Tavily)
 
 ```bash
-ollama pull gemma3:12b   # or another chat model
+ollama pull gemma4:12b   # or another chat model
 ```
 
 > **Model note:** prefer a model *without* a thinking/reasoning mode (e.g. `gemma3`, not `gemma4`). Reasoning-mode models leak internal thinking tokens into schema-constrained JSON and can spend their whole output budget on hidden reasoning. This project sets `think: false` on every Ollama call for exactly that reason — which makes `gemma4` work too — but a non-reasoning model avoids the failure mode entirely.
@@ -87,7 +87,7 @@ ollama pull gemma3:12b   # or another chat model
 ```env
 # .env.local
 LLM_PROVIDER=ollama
-OLLAMA_MODEL=gemma3:12b
+OLLAMA_MODEL=gemma4:12b
 
 SEARCH_PROVIDER=tavily
 TAVILY_API_KEY=tvly-your-key-here
@@ -109,7 +109,7 @@ One key covers both halves; there is no separate search account and no separate 
 # .env.local
 LLM_PROVIDER=claude
 ANTHROPIC_API_KEY=your-key-here
-ANTHROPIC_MODEL=claude-opus-5
+ANTHROPIC_MODEL=claude-sonnet-5
 
 SEARCH_PROVIDER=anthropic
 ```
