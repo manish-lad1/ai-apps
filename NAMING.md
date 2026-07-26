@@ -10,12 +10,12 @@ The first part names *what it does* (the domain or artifact — `prd`, `meeting`
 
 | Pattern | Suffix | Signals | Lives in | Example |
 |---|---|---|---|---|
-| Single agent | `-agent` | One LLM-driven agent, possibly multi-step internally | `ai_agents/` | `prd-critique-agent` |
-| Multi-agent orchestration | `-crew` | Multiple distinct agents contesting or debating the *same* question at the same level — symmetric, order-independent | `crew_apps/` | `prioritization-crew` |
-| Multi-stage handoff | `-pipeline` | Multiple distinct agents passing an artifact forward through fixed, ordered stages — possibly with gates (human approval) or asymmetric generator/critic loops within a stage | `pipeline_apps/` | `idea-research-pipeline` |
-| RAG app | `-rag` | Retrieval-augmented generation | `rag_apps/` | `knowledge-base-rag` |
-| MCP server | `-mcp` | Exposes tools via MCP (a tool *provider*, not itself an agent) | `mcp_apps/` | `github-insights-mcp` |
-| Utility app | *(plain name, no suffix)* | General tool; may or may not be AI-driven | `utility_apps/` | `finance-tracker` |
+| Single agent | `-agent` | One LLM-driven agent, possibly multi-step internally | `ai_agents/` | `prd_critique_agent` |
+| Multi-agent orchestration | `-crew` | Multiple distinct agents contesting or debating the *same* question at the same level — symmetric, order-independent | `crew_apps/` | `prioritization_crew` |
+| Multi-stage handoff | `-pipeline` | Multiple distinct agents passing an artifact forward through fixed, ordered stages — possibly with gates (human approval) or asymmetric generator/critic loops within a stage | `pipeline_apps/` | `idea_research_pipeline` |
+| RAG app | `-rag` | Retrieval-augmented generation | `rag_apps/` | `knowledge_base_rag` |
+| MCP server | `-mcp` | Exposes tools via MCP (a tool *provider*, not itself an agent) | `mcp_apps/` | `github_insights_mcp` |
+| Utility app | *(plain name, no suffix)* | General tool; may or may not be AI-driven | `utility_apps/` | `finance_tracker` |
 
 ## Rules of thumb
 
