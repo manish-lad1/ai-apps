@@ -20,6 +20,7 @@ so a PDF is parsed once rather than on every stage that reads it.
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -30,6 +31,12 @@ TEXTUTIL_SUFFIXES = {".docx", ".doc", ".rtf", ".rtfd", ".html", ".htm", ".odt", 
 SUPPORTED_SUFFIXES = PLAIN_SUFFIXES | PDF_SUFFIXES | TEXTUTIL_SUFFIXES
 
 CACHE_DIRNAME = ".extracted"
+
+# Bumped whenever extraction changes shape. Without it a cached extraction
+# outlives the code that produced it: the mtime check only notices a newer
+# source file, so editing this module leaves every existing cache entry
+# looking valid. That cost an hour of debugging a fix that was working.
+EXTRACTION_VERSION = 2
 
 
 class UnsupportedDocument(ValueError):
@@ -81,16 +88,38 @@ def _extract_textutil(path: Path) -> str:
     return result.stdout
 
 
+def normalise_whitespace(text: str) -> str:
+    """Collapse the layout padding that PDF extraction leaves behind.
+
+    A PDF laid out in fixed-width columns extracts with every line padded
+    out to the page width, which roughly doubles the character count without
+    adding a word of content. On the demo corpus this measured 1.9x to 2.7x.
+
+    That padding is not harmless. Stage 1 hands the document back to the
+    model as a tool result, and one padded invoice reliably caused the model
+    to produce no write_manifest call at all — three times out of three,
+    where the same document unpadded succeeded. Collapsing runs of spaces
+    took it from 2488 characters to 1016 and fixed it.
+
+    Blank lines are preserved, because Stage 2 chunks on paragraph breaks.
+    """
+    lines = [re.sub(r"[ \t]+", " ", line).rstrip() for line in text.splitlines()]
+    collapsed = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", collapsed).strip()
+
+
 def extract_text(path: Path) -> str:
     """Return the plain text of one document, whatever format it arrived in."""
     suffix = path.suffix.lower()
 
     if suffix in PLAIN_SUFFIXES:
+        # Author-written text is left exactly as it is; its whitespace is
+        # meaningful, and the demo corpus relies on aligned invoice tables.
         return _extract_plain(path)
     if suffix in PDF_SUFFIXES:
-        return _extract_pdf(path)
+        return normalise_whitespace(_extract_pdf(path))
     if suffix in TEXTUTIL_SUFFIXES:
-        return _extract_textutil(path)
+        return normalise_whitespace(_extract_textutil(path))
 
     raise UnsupportedDocument(
         f"{suffix or 'that file type'} is not supported. "
@@ -111,7 +140,7 @@ def cached_text(corpus_dir: Path, filename: str) -> str:
         return _extract_plain(source)
 
     cache_dir = corpus_dir / CACHE_DIRNAME
-    cached = cache_dir / (filename + ".txt")
+    cached = cache_dir / f"{filename}.v{EXTRACTION_VERSION}.txt"
 
     if cached.is_file() and cached.stat().st_mtime >= source.stat().st_mtime:
         return cached.read_text(encoding="utf-8")
@@ -123,6 +152,9 @@ def cached_text(corpus_dir: Path, filename: str) -> str:
 
 
 def forget(corpus_dir: Path, filename: str) -> None:
-    """Drop a cached extraction, used when its source is deleted."""
-    cached = corpus_dir / CACHE_DIRNAME / (filename + ".txt")
-    cached.unlink(missing_ok=True)
+    """Drop cached extractions for a file, used when its source is deleted."""
+    cache_dir = corpus_dir / CACHE_DIRNAME
+    if not cache_dir.is_dir():
+        return
+    for stale in cache_dir.glob(f"{filename}.v*.txt"):
+        stale.unlink(missing_ok=True)
