@@ -163,6 +163,11 @@ pydantic-monty-runtime==0.0.21
 pydantic-settings==2.15.0
 pydantic_core==2.46.4
 PyJWT==2.13.0
+pyobjc-core==12.2.2
+pyobjc-framework-Cocoa==12.2.2
+pyobjc-framework-CoreML==12.2.2
+pyobjc-framework-Quartz==12.2.2
+pyobjc-framework-Vision==12.2.2
 pypdf==6.16.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2

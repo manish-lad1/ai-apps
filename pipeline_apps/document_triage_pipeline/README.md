@@ -94,7 +94,7 @@ The UI serves two separate collections, switched by the tabs at the top:
 - **Demo corpus** — the curated ten. Read-only, and what the talk runs on.
 - **My documents** — drag in your own. They are classified, extracted, chunked, embedded, and become answerable, exactly like the demo set.
 
-Uploads accept `.txt`, `.md`, `.csv`, `.pdf`, `.docx`, `.rtf`, `.html`, and `.odt`, up to 20 MB each. Each collection keeps its own manifest and index, so uploading nothing disturbs the demo corpus or the eval suite. Uploads are gitignored.
+Uploads accept `.txt`, `.md`, `.csv`, `.pdf`, `.docx`, `.rtf`, `.html`, `.odt`, and images (`.png`, `.jpg`, `.heic`, `.tiff`), up to 20 MB each. **Scanned PDFs and photographs are read by OCR** — see [Known constraints](#ocr-reads-scans-but-do-not-trust-it-like-a-text-layer). Each collection keeps its own manifest and index, so uploading nothing disturbs the demo corpus or the eval suite. Uploads are gitignored.
 
 Individual stages, for recovering from a failure mid-demo without redoing the work that already succeeded:
 
@@ -116,7 +116,7 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
 - **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
 - **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
-- **Bring your own documents.** Drop PDFs, Word files, or plain text into the UI and they run through the identical three stages. PDF via `pypdf`, Word and RTF via the macOS `textutil` built-in — both entirely offline.
+- **Bring your own documents.** Drop PDFs, Word files, plain text, scans, or photographs into the UI and they run through the identical three stages. PDF text layers via `pypdf`, Word and RTF via the macOS `textutil` built-in, scans and images via the macOS Vision framework — all entirely offline, nothing downloaded.
 
 ## How it works
 
@@ -185,6 +185,8 @@ The guardrail, which is the one worth demonstrating live. The corpus contains a 
 - **Tool-call parsing is a property of the transport, not the model.** The same model, same request, parsed correctly on non-streaming `/v1/chat/completions` and came back as raw `<tool_call>` text on both `/v1/responses` and the streamed path.
 - **Small models fill flat schemas and ignore nested ones.** With the extracted fields nested under a `fields` object, Phi-4-mini returned it empty on all 10 documents while still writing a good summary. Flattened, it filled them in.
 - **Optional means omitted.** The model emits *only* the properties named in `required`. Every field it should attempt has to be required, with an empty-string convention for "not stated".
+- **An alpha channel silently defeats OCR.** Vision returned zero results on a perfectly legible page, with no error and no warning, because the image rendered from the PDF had a transparent background. Flattened onto white, the same image gave 41 text observations. It is the fastest way to conclude, wrongly, that OCR does not work.
+- **OCR gives you spatial order, not reading order.** Left alone, Vision returns an invoice table as every description, then every quantity, then every amount — columns detached from their rows. Regrouping the observations by their bounding boxes is what turns it back into something a model can read.
 - **PDF layout padding is not free.** A PDF laid out in fixed-width columns extracts with every line padded to the page width — 1.9x to 2.7x the character count of the same document as text, none of it content. One padded invoice made Phi-4-mini produce no tool call at all, three times out of three, where the unpadded original always worked. Collapsing runs of spaces fixed it and cut Stage 1's input roughly in half. Only extracted formats are normalised; author-written `.txt` keeps its whitespace, because the demo corpus relies on aligned invoice tables.
 - **Reasoning models need headroom to reach a tool call.** qwen3-4b spent its whole 200-token budget on `<think>` and got truncated before emitting the call. At 600 tokens it succeeded, having used 212.
 - **Bigger did not win.** The 4B reasoning model matched the 3.8B instruct model's score and took four times as long to get there.
@@ -255,7 +257,17 @@ Every stage calls `ensure_loaded()` first. This is the cold start you see on the
 
 `DocumentType` is a closed enum — offer letter, invoice, contract, medical note, ID document, unknown — chosen for the demo corpus. Upload something outside it, such as board minutes, and Stage 1 correctly returns `unknown`. That is the schema working as designed rather than a bug, but if you point this at your own document set, widen the enum in [`schemas.py`](schemas.py) and the type definitions in `stage1_ingest.SYSTEM_PROMPT` to match. Extraction, indexing, and grounded answering are unaffected and work on any document.
 
-Scanned PDFs are also rejected on upload: there is no OCR here, so a PDF with no embedded text layer reports that rather than indexing an empty document.
+### OCR reads scans, but do not trust it like a text layer
+
+A PDF with no text layer is rasterised and recognised with the macOS Vision framework, which is built into the operating system: nothing is downloaded, no model is loaded, no memory is taken from Foundry Local, and a page takes about half a second. Photographs and image files go the same way.
+
+It works — a scanned invoice classified as `invoice` with `INV-2026-0412` and `4,820.00` extracted correctly, and answered questions about its total, its VAT, and the customer's address. But three things are worth knowing before relying on it:
+
+- **Recognition errors reach the manifest.** The same scan produced `Northgate Supplles Ltd`, and that misspelling is what gets stored and indexed. On a clean synthetic scan, 9 of 11 key fields came back exactly right. Real scans, with skew and noise, will do worse.
+- **Two tightly spaced lines can merge into nonsense.** Vision returned both remit lines as one observation with the characters interleaved. No amount of layout logic fixes a recognition failure.
+- **Flattened tables confuse the model even when OCR is right.** Asked how many drive belts were ordered, the model answered "two" from the correct OCR line `Conveyor drive belts, 1200mm 24 120.00 2,880.00`. The quantity is 24. Losing the column delimiters costs accuracy separately from OCR quality.
+
+There is no handwriting recognition and no deskewing. If you have a choice, feed this a born-digital PDF — its text layer is exact, and OCR is the fallback, not the equal.
 
 ### The grounding guardrail leaks when the subject's own document looks similar
 
