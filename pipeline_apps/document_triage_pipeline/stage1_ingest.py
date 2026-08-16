@@ -14,6 +14,7 @@ document is recorded as a failure rather than quietly dropped.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import console
@@ -173,8 +174,19 @@ def run(
     *,
     alias: str = CHAT_ALIAS,
     quiet: bool = False,
+    on_event: Callable[[str, dict], None] | None = None,
 ) -> Manifest:
-    """Triage every document in the corpus and write output/manifest.json."""
+    """Triage every document in the corpus and write output/manifest.json.
+
+    on_event, if given, is called with (kind, payload) as work proceeds so a
+    caller such as the web UI can stream progress. Kinds are "start",
+    "document", and "finished". The terminal path does not use it.
+    """
+
+    def emit(kind: str, payload: dict) -> None:
+        if on_event is not None:
+            on_event(kind, payload)
+
     if not quiet:
         console.stage_header(1, "INGEST, CLASSIFY, EXTRACT")
 
@@ -190,9 +202,13 @@ def run(
         console.info(f"Corpus:  {len(filenames)} documents in {console.rel(documents_dir)}/")
         console.section("Triaging")
 
+    emit("start", {"model_id": model_id, "total": len(filenames), "filenames": filenames})
+
     manifest = Manifest(model_id=model_id)
 
-    for filename in filenames:
+    for position, filename in enumerate(filenames, start=1):
+        emit("document_started", {"filename": filename, "position": position})
+
         try:
             record = _triage_one(client, model_id, documents_dir, filename)
         except Exception as exc:  # noqa: BLE001 - one bad document must not stop the run
@@ -201,12 +217,22 @@ def run(
             )
             if not quiet:
                 console.item(filename, "validation failed after retry", ok=False)
+            emit(
+                "document",
+                {"filename": filename, "position": position, "ok": False,
+                 "error": str(exc)[:300]},
+            )
             continue
 
         manifest.records.append(record)
         if not quiet:
             pii = "PII" if record.contains_pii else "no PII"
             console.item(filename, f"{record.document_type.value:<14s} {pii}")
+        emit(
+            "document",
+            {"filename": filename, "position": position, "ok": True,
+             "record": record.model_dump(mode="json")},
+        )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
@@ -216,4 +242,8 @@ def run(
         console.info(f"{len(manifest.records)} triaged, {len(manifest.failures)} failed")
         console.info(f"Written to {console.rel(output_path)}")
 
+    emit(
+        "finished",
+        {"triaged": len(manifest.records), "failed": len(manifest.failures)},
+    )
     return manifest

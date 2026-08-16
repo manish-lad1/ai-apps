@@ -10,8 +10,8 @@ choice at this size, and it keeps the demo dependency-free.
 
 from __future__ import annotations
 
-import json
 import math
+from collections.abc import Callable
 from pathlib import Path
 
 import console
@@ -96,8 +96,18 @@ def run(
     index_path: Path,
     *,
     quiet: bool = False,
+    on_event: Callable[[str, dict], None] | None = None,
 ) -> Index:
-    """Chunk, embed, and persist. Requires Stage 1 to have run."""
+    """Chunk, embed, and persist. Requires Stage 1 to have run.
+
+    on_event mirrors Stage 1's: (kind, payload) for callers that want to
+    stream progress. Kinds are "start", "progress", and "finished".
+    """
+
+    def emit(kind: str, payload: dict) -> None:
+        if on_event is not None:
+            on_event(kind, payload)
+
     if not quiet:
         console.stage_header(2, "CHUNK, EMBED, INDEX")
 
@@ -129,6 +139,11 @@ def run(
         )
         console.section("Embedding")
 
+    emit(
+        "start",
+        {"model_id": model_id, "total": len(pending), "documents": len(by_filename)},
+    )
+
     index = Index(embedding_model_id=model_id, dimensions=0)
 
     for start in range(0, len(pending), BATCH_SIZE):
@@ -150,21 +165,33 @@ def run(
                 )
             )
 
+        done = min(start + BATCH_SIZE, len(pending))
         if not quiet:
-            done = min(start + BATCH_SIZE, len(pending))
             console.progress(done, len(pending), batch[-1][0])
+        emit(
+            "progress",
+            {"done": done, "total": len(pending), "filename": batch[-1][0]},
+        )
 
     index.dimensions = len(index.chunks[0].embedding) if index.chunks else 0
 
     index_path.parent.mkdir(parents=True, exist_ok=True)
     index_path.write_text(index.model_dump_json(indent=2), encoding="utf-8")
 
+    size_kb = index_path.stat().st_size / 1024
     if not quiet:
         console.section("Result")
         console.info(f"{len(index.chunks)} chunks at {index.dimensions} dimensions")
-        size_kb = index_path.stat().st_size / 1024
         console.info(f"Written to {console.rel(index_path)} ({size_kb:.0f} KB)")
 
+    emit(
+        "finished",
+        {
+            "chunks": len(index.chunks),
+            "dimensions": index.dimensions,
+            "size_kb": round(size_kb),
+        },
+    )
     return index
 
 

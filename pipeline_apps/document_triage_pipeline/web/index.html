@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Triage Pipeline</title>
+<!--
+  Everything is inline on purpose. No CDN, no web fonts, no external anything:
+  this page has to work with the wifi switched off, and a single remote link
+  would quietly break the one guarantee the demo makes.
+-->
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2330;
+    --line: #2a3441;
+    --text: #e8edf4;
+    --muted: #93a1b5;
+    --accent: #5aa9ff;
+    --ok: #4ec9a5;
+    --warn: #f0b849;
+    --bad: #ff6b6b;
+    --pii: #c792ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  code, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+  }
+  h1 { margin: 0; font-size: 24px; letter-spacing: -0.2px; }
+  .tagline { color: var(--muted); font-size: 15px; }
+  .status { margin-left: auto; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .pill {
+    font-size: 13px; padding: 5px 11px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  }
+  .pill.live { color: var(--ok); border-color: #23543f; }
+  .pill.down { color: var(--bad); border-color: #5c2a2a; }
+
+  main { padding: 24px 28px 64px; max-width: 1280px; margin: 0 auto; }
+  .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .card h2 {
+    margin: 0 0 4px; font-size: 13px; letter-spacing: 1.4px;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+  .card p.hint { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+
+  button {
+    font: inherit; font-size: 15px; font-weight: 550;
+    background: var(--accent); color: #04101f; border: 0;
+    padding: 9px 18px; border-radius: 8px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.1); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+  .bar { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin: 14px 0 8px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+  .stage-log { margin-top: 10px; font-size: 13.5px; color: var(--muted); min-height: 20px; }
+  .stage-log.err { color: var(--bad); }
+
+  section.block { margin-top: 30px; }
+  section.block > h2 {
+    font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 12px;
+  }
+
+  /* The manifest is 8 columns wide. Let the table scroll inside its own box
+     rather than letting it push the whole page sideways. */
+  .scroller { overflow-x: auto; border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 900px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; letter-spacing: .6px; text-transform: uppercase; }
+  tbody tr:hover { background: var(--panel-2); }
+  td.file { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .tag {
+    display: inline-block; font-size: 12.5px; padding: 2px 9px; border-radius: 6px;
+    background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap;
+  }
+  .tag.pii { color: var(--pii); border-color: #4a3663; }
+  .tag.clean { color: var(--muted); }
+  .tag.type { color: var(--accent); border-color: #24435f; }
+
+  .askbar { display: flex; gap: 10px; }
+  .askbar input {
+    flex: 1; font: inherit; font-size: 16px; padding: 12px 14px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 9px; color: var(--text);
+  }
+  .askbar input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .suggest { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .suggest button {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    font-size: 13px; padding: 6px 12px; font-weight: 450;
+  }
+  .suggest button:hover:not(:disabled) { color: var(--text); }
+
+  .answer { margin-top: 16px; border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+  .answer .q { padding: 13px 18px; background: var(--panel-2); color: var(--muted); font-size: 14.5px; }
+  .answer .a { padding: 18px; font-size: 21px; line-height: 1.4; }
+  .answer.refused .a { color: var(--warn); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .answer .meta { padding: 12px 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+  .answer .meta b { color: var(--text); font-weight: 550; }
+  .src { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+  .score { color: var(--muted); }
+  .score.top { color: var(--ok); }
+
+  .empty { color: var(--muted); font-size: 14.5px; padding: 14px 0; }
+  dialog {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line);
+    border-radius: 12px; max-width: 800px; width: 92vw; padding: 0;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog .head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+  dialog pre { margin: 0; padding: 18px; overflow: auto; max-height: 65vh; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Document Triage Pipeline</h1>
+  <span class="tagline">Classify, index, and interrogate documents — entirely on this machine</span>
+  <div class="status">
+    <span class="pill" id="pill-service">checking service…</span>
+    <span class="pill" id="pill-corpus">—</span>
+    <span class="pill" id="pill-index">—</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="stages">
+    <div class="card">
+      <h2>Stage 1</h2>
+      <h3>Ingest, classify, extract</h3>
+      <p class="hint">Two forced tool calls per document, then Pydantic validation. Around 5s per document.</p>
+      <button id="btn-stage1">Run stage 1</button>
+      <div class="bar"><i id="bar1"></i></div>
+      <div class="stage-log" id="log1">Not run yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Stage 2</h2>
+      <h3>Chunk, embed, index</h3>
+      <p class="hint">Paragraph chunks embedded locally at 1024 dimensions, stored as JSON. No vector database.</p>
+      <button id="btn-stage2">Run stage 2</button>
+      <div class="bar"><i id="bar2"></i></div>
+      <div class="stage-log" id="log2">Not run yet.</div>
+    </div>
+
+    <div class="card">
+      <h2>Stage 3</h2>
+      <h3>Ask</h3>
+      <p class="hint">Answers come only from retrieved context. Anything else returns <code>NOT FOUND</code>.</p>
+      <button id="btn-runall" class="ghost">Run stages 1 and 2, then ask</button>
+      <div class="bar"><i id="bar3"></i></div>
+      <div class="stage-log" id="log3">Ready when the index exists.</div>
+    </div>
+  </div>
+
+  <section class="block">
+    <h2>Ask the collection</h2>
+    <div class="askbar">
+      <input id="q" placeholder="e.g. What is the total due on invoice INV-2026-0412?" autocomplete="off">
+      <button id="btn-ask">Ask</button>
+    </div>
+    <div class="suggest" id="suggest"></div>
+    <div id="answers"></div>
+  </section>
+
+  <section class="block">
+    <h2>Manifest <span id="manifest-count" class="tagline"></span></h2>
+    <div id="manifest-wrap"><p class="empty">Stage 1 has not run yet.</p></div>
+  </section>
+
+  <section class="block">
+    <h2>Corpus</h2>
+    <div id="corpus-wrap"><p class="empty">Loading…</p></div>
+  </section>
+
+</main>
+
+<dialog id="doc-modal">
+  <div class="head">
+    <strong id="doc-title" class="mono"></strong>
+    <button class="ghost" style="margin-left:auto" onclick="document.getElementById('doc-modal').close()">Close</button>
+  </div>
+  <pre id="doc-body"></pre>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const SUGGESTIONS = [
+  ["Single document", "What is the total due on invoice INV-2026-0412?"],
+  ["Spans two documents", "What is the hourly rate in the agreement that invoice INV-BW-2291 was issued against?"],
+  ["Should refuse", "What is Amelia Hart's home address?"],
+  ["Same question, right person", "What is Nadia Okonkwo's home address?"],
+  ["Medical", "What medication was Ravi Shah started on?"],
+];
+
+let busy = false;
+
+function setBusy(state) {
+  busy = state;
+  for (const id of ["btn-stage1", "btn-stage2", "btn-runall", "btn-ask"]) {
+    $(id).disabled = state;
+  }
+  document.querySelectorAll("#suggest button").forEach(b => b.disabled = state);
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+  ));
+}
+
+// ---- state -----------------------------------------------------------
+// Timings survive a state refresh — how long a cold start took is the most
+// interesting number on the screen, and refreshState would otherwise wipe it.
+const lastElapsed = { stage1: null, stage2: null };
+
+function withElapsed(key, text) {
+  return lastElapsed[key] ? `${text} · ${lastElapsed[key]}s` : text;
+}
+
+async function refreshState() {
+  const s = await (await fetch("/api/state")).json();
+
+  const svc = $("pill-service");
+  if (s.service_url) {
+    svc.textContent = "Foundry Local " + s.service_url.replace("http://", "");
+    svc.className = "pill live";
+  } else {
+    svc.textContent = "service unavailable";
+    svc.className = "pill down";
+    $("log1").textContent = s.service_error || "Foundry Local is not running.";
+    $("log1").classList.add("err");
+  }
+
+  $("pill-corpus").textContent = s.documents + " documents";
+  $("pill-index").textContent = s.index
+    ? `index: ${s.index.chunks} chunks @ ${s.index.dimensions}d`
+    : "index: not built";
+
+  if (s.manifest) {
+    $("log1").textContent = withElapsed("stage1",
+      `${s.manifest.triaged} triaged, ${s.manifest.failed} failed — ${s.manifest.model_id}`);
+    $("bar1").style.width = "100%";
+    loadManifest();
+  }
+  if (s.index) {
+    $("log2").textContent = withElapsed("stage2",
+      `${s.index.chunks} chunks at ${s.index.dimensions} dimensions — ${s.index.embedding_model_id}`);
+    $("bar2").style.width = "100%";
+    $("log3").textContent = "Ready. Ask a question below.";
+  }
+  return s;
+}
+
+// ---- SSE stage runner ------------------------------------------------
+// fetch + ReadableStream rather than EventSource, because EventSource
+// cannot issue a POST.
+async function runStage(url, { onEvent }) {
+  const response = await fetch(url, { method: "POST" });
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop();
+    for (const frame of frames) {
+      const kind = /^event: (.*)$/m.exec(frame)?.[1];
+      const data = /^data: (.*)$/m.exec(frame)?.[1];
+      if (kind && data) onEvent(kind, JSON.parse(data));
+    }
+  }
+}
+
+async function runStage1() {
+  setBusy(true);
+  $("log1").classList.remove("err");
+  $("bar1").style.width = "0";
+  $("log1").textContent = "Loading model (cold start)…";
+  let failed = false;
+  let total = 0;
+
+  await runStage("/api/stage1", {
+    onEvent: (kind, d) => {
+      if (kind === "start") {
+        total = d.total;
+        $("log1").textContent = `0 / ${d.total} — ${d.model_id}`;
+      } else if (kind === "document_started") {
+        $("log1").textContent = `Reading ${d.filename}…`;
+      } else if (kind === "document") {
+        $("bar1").style.width = (100 * d.position / (total || 1)) + "%";
+        $("log1").textContent = `${d.position} / ${total} — ${d.filename}`;
+      } else if (kind === "finished") {
+        $("bar1").style.width = "100%";
+        $("log1").textContent = `${d.triaged} triaged, ${d.failed} failed`;
+      } else if (kind === "elapsed") {
+        lastElapsed.stage1 = d.seconds;
+        $("log1").textContent += ` · ${d.seconds}s`;
+      } else if (kind === "error") {
+        failed = true;
+        $("log1").textContent = d.message;
+        $("log1").classList.add("err");
+      }
+    }
+  });
+
+  setBusy(false);
+  if (!failed) { await loadManifest(); await refreshState(); }
+  return !failed;
+}
+
+async function runStage2() {
+  setBusy(true);
+  $("log2").classList.remove("err");
+  $("bar2").style.width = "0";
+  $("log2").textContent = "Loading embedding model…";
+  let failed = false;
+
+  await runStage("/api/stage2", {
+    onEvent: (kind, d) => {
+      if (kind === "start") {
+        $("log2").textContent = `Embedding ${d.total} chunks — ${d.model_id}`;
+      } else if (kind === "progress") {
+        $("bar2").style.width = (100 * d.done / d.total) + "%";
+        $("log2").textContent = `${d.done} / ${d.total} chunks`;
+      } else if (kind === "finished") {
+        $("bar2").style.width = "100%";
+        $("log2").textContent =
+          `${d.chunks} chunks at ${d.dimensions} dimensions (${d.size_kb} KB)`;
+      } else if (kind === "elapsed") {
+        lastElapsed.stage2 = d.seconds;
+        $("log2").textContent += ` · ${d.seconds}s`;
+      } else if (kind === "error") {
+        failed = true;
+        $("log2").textContent = d.message;
+        $("log2").classList.add("err");
+      }
+    }
+  });
+
+  setBusy(false);
+  if (!failed) await refreshState();
+  return !failed;
+}
+
+// ---- ask -------------------------------------------------------------
+async function ask(question) {
+  if (!question.trim() || busy) return;
+  setBusy(true);
+  $("bar3").style.width = "40%";
+  $("log3").textContent = "Retrieving and answering…";
+
+  const card = document.createElement("div");
+  card.className = "answer";
+  card.innerHTML = `<div class="q">${esc(question)}</div><div class="a">…</div>`;
+  $("answers").prepend(card);
+
+  try {
+    const response = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: response.statusText }));
+      card.querySelector(".a").textContent = err.detail;
+      card.classList.add("refused");
+      $("log3").textContent = "Failed.";
+    } else {
+      const d = await response.json();
+      card.classList.toggle("refused", d.refused);
+      const sources = d.retrieved.map((r, i) =>
+        `<span class="src">${esc(r.filename)}</span> <span class="score${i === 0 ? " top" : ""}">${r.score.toFixed(3)}</span>`
+      ).join(" &nbsp;·&nbsp; ");
+
+      card.querySelector(".a").textContent = d.answer;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = d.refused
+        ? `<b>Refused.</b> Nothing in the retrieved context supports an answer. Retrieved: ${sources}`
+        : `<b>Sources:</b> ${sources}`;
+      meta.innerHTML += ` &nbsp;·&nbsp; ${d.seconds}s`;
+      card.appendChild(meta);
+      $("log3").textContent = `Answered in ${d.seconds}s`;
+    }
+  } catch (e) {
+    card.querySelector(".a").textContent = String(e);
+  }
+
+  $("bar3").style.width = "100%";
+  setBusy(false);
+}
+
+// ---- manifest and corpus --------------------------------------------
+async function loadManifest() {
+  const response = await fetch("/api/manifest");
+  if (!response.ok) return;
+  const m = await response.json();
+
+  const rows = m.records.map(r => {
+    const f = r.fields || {};
+    const pii = r.contains_pii
+      ? `<span class="tag pii">PII${r.pii_types?.length ? " · " + r.pii_types.length : ""}</span>`
+      : `<span class="tag clean">none</span>`;
+    return `<tr>
+      <td class="file"><a href="#" onclick="showDoc('${esc(r.filename)}');return false" style="color:var(--accent)">${esc(r.filename)}</a></td>
+      <td><span class="tag type">${esc(r.document_type)}</span></td>
+      <td>${pii}</td>
+      <td>${esc(f.person_name || "—")}</td>
+      <td>${esc(f.organisation || "—")}</td>
+      <td class="mono" style="font-size:12.5px">${esc(f.reference || "—")}</td>
+      <td class="mono" style="font-size:12.5px">${esc(f.amount || "—")}</td>
+      <td class="mono" style="font-size:12.5px">${esc(f.date || "—")}</td>
+    </tr>`;
+  }).join("");
+
+  const failures = (m.failures || []).map(f => `<tr>
+      <td class="file">${esc(f.filename)}</td>
+      <td colspan="7" style="color:var(--bad)">${esc(f.error)}</td>
+    </tr>`).join("");
+
+  $("manifest-count").textContent =
+    `— ${m.records.length} records, ${m.failures.length} failures`;
+  $("manifest-wrap").innerHTML = `<div class="scroller"><table>
+    <thead><tr>
+      <th>File</th><th>Type</th><th>Personal data</th><th>Person</th>
+      <th>Organisation</th><th>Reference</th><th>Amount</th><th>Date</th>
+    </tr></thead>
+    <tbody>${rows}${failures}</tbody></table></div>`;
+}
+
+async function loadCorpus() {
+  const { files } = await (await fetch("/api/corpus")).json();
+  $("corpus-wrap").innerHTML = `<div class="scroller"><table>
+    <thead><tr><th>File</th><th>Size</th><th>Preview</th></tr></thead>
+    <tbody>${files.map(f => `<tr>
+      <td class="file"><a href="#" onclick="showDoc('${esc(f.filename)}');return false" style="color:var(--accent)">${esc(f.filename)}</a></td>
+      <td class="mono" style="font-size:12.5px;color:var(--muted)">${f.characters} ch</td>
+      <td style="color:var(--muted);font-size:13.5px">${esc(f.preview)}…</td>
+    </tr>`).join("")}</tbody></table></div>`;
+}
+
+async function showDoc(filename) {
+  const response = await fetch("/api/document/" + encodeURIComponent(filename));
+  if (!response.ok) return;
+  const d = await response.json();
+  $("doc-title").textContent = d.filename;
+  $("doc-body").textContent = d.text;
+  $("doc-modal").showModal();
+}
+
+// ---- wiring ----------------------------------------------------------
+$("btn-stage1").onclick = runStage1;
+$("btn-stage2").onclick = runStage2;
+$("btn-runall").onclick = async () => {
+  if (await runStage1()) await runStage2();
+};
+$("btn-ask").onclick = () => ask($("q").value);
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") ask($("q").value); });
+
+$("suggest").innerHTML = SUGGESTIONS.map(([label, q]) =>
+  `<button title="${esc(q)}" data-q="${esc(q)}">${esc(label)}</button>`
+).join("");
+$("suggest").addEventListener("click", e => {
+  const q = e.target.dataset?.q;
+  if (q) { $("q").value = q; ask(q); }
+});
+
+refreshState();
+loadCorpus();
+</script>
+</body>
+</html>

@@ -70,6 +70,14 @@ Then run all three stages:
 .venv/bin/python run_demo.py
 ```
 
+Or drive the same pipeline from a browser instead of the terminal:
+
+```bash
+.venv/bin/python run_web.py
+```
+
+Then open `http://127.0.0.1:8000`. The UI runs each stage with live progress, shows the manifest as a sortable table, and prints retrieval scores beside every answer. It adds no dependencies — FastAPI and uvicorn are already in the pinned set — and loads no external CSS, fonts, or scripts, so it works with the wifi off exactly like the terminal path.
+
 Individual stages, for recovering from a failure mid-demo without redoing the work that already succeeded:
 
 ```bash
@@ -89,6 +97,7 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Two-model comparison harness.** 19 cases across four categories, run against both chat models, with per-category pass rates and median latency.
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
 - **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
+- **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
 
 ## How it works
 
@@ -238,6 +247,7 @@ Honest ones, visible in the eval output: on invoices Phi-4-mini puts the billed 
 - [`foundry_endpoint.py`](foundry_endpoint.py) — port and model discovery
 - [`schemas.py`](schemas.py) — the validation contract
 - [`evals/cases.py`](evals/cases.py) — the 19 eval cases and what each is testing
+- [`web/server.py`](web/server.py) — the local web UI's API, and how blocking stages are streamed as events
 - [Foundry Local documentation](https://learn.microsoft.com/azure/ai-foundry/foundry-local/)
 - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 
