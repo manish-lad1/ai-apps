@@ -1,0 +1,44 @@
+NEW STARTER ONBOARDING RECORD
+Halden Robotics Ltd - People Operations
+CONFIDENTIAL - contains personal data
+
+Record reference:     HR-ONB-2026-0071
+Record created:       2026-01-22
+
+IDENTITY
+  Full name:          Nadia Chiamaka Okonkwo
+  Date of birth:      1994-06-17
+  Place of birth:     Manchester
+  Nationality:        British
+  Passport number:    KX4471982
+  Passport expiry:    2031-08-09
+  Driving licence:    OKONK906174NC9AB
+
+GOVERNMENT IDENTIFIERS
+  National Insurance: QQ 12 34 56 C
+  NHS number:         943 476 5919
+  Tax code:           1257L
+
+CONTACT
+  Home address:       27 Lindfield Gardens, Flat 3, Leeds, LS6 2QN
+  Mobile:             07700 900414
+  Personal email:     n.okonkwo.personal@example.invalid
+  Emergency contact:  Chidi Okonkwo (brother), 07700 900822
+
+EMPLOYMENT
+  Job title:          Robotics Test Engineer
+  Start date:         2026-02-02
+  Annual salary:      GBP 61,200
+  Line manager:       Priya Raman
+
+PAYROLL
+  Bank:               Northfield Building Society
+  Sort code:          40-22-18
+  Account number:     61094427
+
+MEDICAL DECLARATION
+  Declared condition: Type 1 diabetes, insulin dependent
+  Adjustments:        Fridge access for insulin storage, flexible break times
+
+All personal data in this record is fictional and generated for
+demonstration purposes.

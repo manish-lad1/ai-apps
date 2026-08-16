@@ -1,0 +1,27 @@
+INVOICE
+
+From:    Brightwater Analytics Ltd
+         12 Wharfside Court, Bristol
+         Company number: 09114472
+
+Bill to: Kesterline Group plc
+         Kesterline House, Reading
+
+Invoice number:   INV-BW-2291
+Invoice date:     2026-02-28
+Payment due:      2026-03-30
+Issued against:   MSA-BW-2026-014
+Statement of work: SOW-03, Customer Data Platform migration
+
+------------------------------------------------------------
+Description                       Hours    Rate       Amount
+------------------------------------------------------------
+Senior consultant time              44    145.00     6,380.00
+Junior consultant time              18    145.00     2,610.00
+------------------------------------------------------------
+                                   Total hours: 62
+                                   TOTAL DUE     GBP 8,990.00
+------------------------------------------------------------
+
+Payment terms are as set out in the master services agreement referenced
+above. Please quote the invoice number and the agreement reference.

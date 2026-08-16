@@ -1,0 +1,29 @@
+INVOICE
+
+From:    Northgate Supplies Ltd
+         Unit 4, Carrow Business Park, Norwich
+         VAT registration: GB 418 2295 71
+
+Bill to: Halden Robotics Ltd
+         Sixth Floor, Tamarind House, Leeds
+
+Invoice number:  INV-2026-0412
+Invoice date:    2026-02-14
+Payment due:     2026-03-14
+Payment terms:   Net 30
+
+------------------------------------------------------------
+Description                        Qty     Unit      Amount
+------------------------------------------------------------
+Conveyor drive belts, 1200mm        24    120.00    2,880.00
+Bearing assemblies, sealed          40     22.50      900.00
+Delivery and handling                1    100.00      100.00
+------------------------------------------------------------
+                                    Subtotal        3,880.00
+                                    VAT at 20%        776.00
+                                    Adjustment        164.00
+                                    TOTAL DUE     GBP 4,820.00
+------------------------------------------------------------
+
+Remit to: Northgate Supplies Ltd, sort code 20-45-11, account 88213047.
+Please quote the invoice number with payment.

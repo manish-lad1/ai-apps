@@ -1,0 +1,27 @@
+DRIVING LICENCE - COUNTERPART DETAIL SHEET
+Issued for identity verification purposes
+
+1.  Surname:            MARCHETTI
+2.  Given names:        ELISE MARIA
+3.  Date of birth:      1991-09-30
+    Place of birth:     Southampton
+4a. Date of issue:      2022-05-11
+4b. Valid until:        2032-05-10
+4c. Issuing authority:  DVLA
+5.  Licence number:     MARCH909305EM2CD
+8.  Address:            14 Ashgrove Terrace, Southampton, SO15 3TL
+
+9.  Entitlement categories:
+      AM  - Mopeds                        valid from 2010-09-30
+      A   - Motorcycles                   valid from 2014-03-02
+      B   - Cars                          valid from 2010-09-30
+      BE  - Cars with trailer             valid from 2010-09-30
+      C1  - Medium goods vehicles         valid from 2019-11-18
+
+12. Information codes:
+      01 - Eyesight correction required
+
+Penalty points recorded: 3 (SP30, offence date 2024-07-19, expires
+2028-07-19).
+
+This document is fictional and generated for demonstration purposes.

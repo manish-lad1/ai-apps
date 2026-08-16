@@ -1,0 +1,38 @@
+MASTER SERVICES AGREEMENT
+
+Agreement reference: MSA-BW-2026-014
+Effective date:      2026-01-15
+
+BETWEEN:
+  (1) Brightwater Analytics Ltd, registered in England and Wales,
+      company number 09114472 ("the Supplier"); and
+  (2) Kesterline Group plc, registered in England and Wales,
+      company number 04482310 ("the Client").
+
+1. SERVICES
+   The Supplier shall provide data engineering and analytics consultancy
+   services as described in individual statements of work agreed under
+   this Agreement.
+
+2. CHARGES
+   2.1 Services are charged at an hourly rate of GBP 145 per consultant
+       hour, exclusive of VAT.
+   2.2 Invoices are issued monthly in arrears and are payable within
+       30 days of the invoice date.
+   2.3 Rates are fixed for the first 12 months of the term.
+
+3. TERM AND TERMINATION
+   3.1 This Agreement runs for an initial term of 24 months from the
+       effective date.
+   3.2 Either party may terminate on 60 days written notice.
+
+4. CONFIDENTIALITY
+   Each party shall keep confidential all information disclosed by the
+   other party in connection with this Agreement for a period of five
+   years following termination.
+
+5. GOVERNING LAW
+   This Agreement is governed by the laws of England and Wales.
+
+Signed for and on behalf of the Supplier:  R. Okafor, Director
+Signed for and on behalf of the Client:    T. Vance, Chief Operating Officer

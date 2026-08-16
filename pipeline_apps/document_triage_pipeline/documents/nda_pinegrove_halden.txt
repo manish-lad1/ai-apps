@@ -1,0 +1,45 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+Agreement reference: NDA-PG-2026-007
+Effective date:      2026-01-30
+
+BETWEEN:
+  (1) Pinegrove Labs Ltd, registered in England and Wales,
+      company number 11235813; and
+  (2) Halden Robotics Ltd, registered in England and Wales,
+      company number 07781004.
+
+1. PURPOSE
+   The parties wish to explore a potential collaboration on machine
+   vision systems for warehouse automation and will exchange confidential
+   information for that purpose only.
+
+2. CONFIDENTIAL INFORMATION
+   Any information disclosed by one party to the other, in any form, that
+   is marked confidential or that a reasonable person would understand to
+   be confidential given its nature and the circumstances of disclosure.
+
+3. OBLIGATIONS
+   3.1 Each party shall use the other's confidential information solely
+       for the purpose set out in clause 1.
+   3.2 Neither party shall disclose the other's confidential information
+       to any third party without prior written consent.
+   3.3 Each party shall protect the other's confidential information with
+       no less care than it applies to its own.
+
+4. EXCLUSIONS
+   Clause 3 does not apply to information that is or becomes public
+   through no fault of the receiving party, was already lawfully known to
+   the receiving party, or is required to be disclosed by law.
+
+5. TERM
+   This Agreement remains in force for three years from the effective
+   date. The obligations in clause 3 survive expiry for a further
+   two years.
+
+6. GOVERNING LAW
+   This Agreement is governed by the laws of England and Wales and the
+   parties submit to the exclusive jurisdiction of the English courts.
+
+Signed for Pinegrove Labs Ltd:    S. Whitcombe, Director
+Signed for Halden Robotics Ltd:   J. Ferreira, Director

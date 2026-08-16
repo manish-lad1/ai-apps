@@ -1,0 +1,31 @@
+CLINIC CONSULTATION NOTE
+Fenwick Road Respiratory Clinic
+
+Patient:         Ravi Shah
+Date of birth:   1988-11-02
+Clinic number:   FR-40218
+Date seen:       2026-02-19
+Seen by:         Dr Imogen Feltz, Consultant Respiratory Physician
+
+PRESENTING COMPLAINT
+Six-month history of nocturnal cough and chest tightness, worse in cold
+weather and after exercise. Two courses of oral steroids in the past year.
+
+EXAMINATION
+Chest clear on auscultation. No wheeze at rest. Peak flow 410 L/min
+against a predicted 520 L/min.
+
+INVESTIGATIONS
+Spirometry shows FEV1 2.9 L (72% predicted) with 14% reversibility
+following salbutamol. FeNO 46 ppb.
+
+ASSESSMENT
+Mild persistent asthma, currently poorly controlled.
+
+PLAN
+1. Start beclometasone 200 micrograms twice daily via inhaler.
+2. Continue salbutamol 100 micrograms as required.
+3. Inhaler technique reviewed with the respiratory nurse today.
+4. Review in eight weeks with repeat spirometry.
+
+Dictated 2026-02-19, typed 2026-02-20.
