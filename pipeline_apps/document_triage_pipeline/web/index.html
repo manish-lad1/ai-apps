@@ -122,6 +122,21 @@
   }
   .askbar input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
+  .engines { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .engines .lbl { color: var(--muted); font-size: 13px; letter-spacing: .4px; text-transform: uppercase; }
+  .engine {
+    font: inherit; font-size: 13.5px; padding: 6px 13px; cursor: pointer;
+    background: var(--panel); color: var(--muted);
+    border: 1px solid var(--line); border-radius: 8px;
+  }
+  .engine.active { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+  .engine .sub { display: block; font-size: 11.5px; color: var(--muted); }
+  .engine.active .sub { color: var(--accent); }
+  .badge-engine {
+    font-size: 11.5px; padding: 2px 8px; border-radius: 5px; margin-left: 8px;
+    border: 1px solid var(--line); color: var(--muted); text-transform: uppercase; letter-spacing: .4px;
+  }
+
   .suggest { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .suggest button {
     background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
@@ -208,6 +223,11 @@
 
   <section class="block">
     <h2>Ask <span id="ask-scope" class="tagline"></span></h2>
+    <div class="engines" id="engines">
+      <span class="lbl">Engine</span>
+      <button class="engine active" data-engine="raw">No framework<span class="sub">openai client · phi-4-mini</span></button>
+      <button class="engine" data-engine="agent-framework">Agent Framework<span class="sub">MS Agent Framework · qwen3-4b</span></button>
+    </div>
     <div class="askbar">
       <input id="q" placeholder="Ask a question about these documents…" autocomplete="off">
       <button id="btn-ask">Ask</button>
@@ -250,6 +270,7 @@ const DEMO_SUGGESTIONS = [
 ];
 
 let corpus = "demo";
+let engine = "raw";
 let serverState = null;
 let busy = false;
 const lastElapsed = {};   // keyed "<corpus>:stage1"
@@ -263,7 +284,7 @@ function withElapsed(stage, text) {
 function setBusy(state) {
   busy = state;
   ["btn-stage1", "btn-stage2", "btn-runall", "btn-ask", "btn-pick"].forEach(id => $(id).disabled = state);
-  document.querySelectorAll("#suggest button, .tab, .danger").forEach(b => b.disabled = state);
+  document.querySelectorAll("#suggest button, .tab, .danger, .engine").forEach(b => b.disabled = state);
 }
 
 function esc(s) {
@@ -529,7 +550,7 @@ async function ask(question) {
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, corpus })
+      body: JSON.stringify({ question, corpus, engine })
     });
 
     if (!response.ok) {
@@ -550,7 +571,9 @@ async function ask(question) {
       meta.innerHTML = d.refused
         ? `<b>Refused.</b> Nothing in the retrieved context supports an answer. Retrieved: ${sources}`
         : `<b>Sources:</b> ${sources}`;
-      meta.innerHTML += ` &nbsp;·&nbsp; ${d.seconds}s`;
+      meta.innerHTML += ` &nbsp;·&nbsp; ${d.seconds}s`
+        + ` <span class="badge-engine">${esc(d.engine_label)}</span>`
+        + ` <span class="badge-engine">${esc(d.model_id)}</span>`;
       card.appendChild(meta);
       $("log3").textContent = `Answered in ${d.seconds}s`;
     }
@@ -647,6 +670,20 @@ $("tabs").addEventListener("click", e => {
     document.querySelectorAll(".tab").forEach(t =>
       t.classList.toggle("active", t.dataset.corpus === key));
     renderCorpusView();
+  }
+});
+
+$("engines").addEventListener("click", e => {
+  const chosen = e.target.closest(".engine")?.dataset.engine;
+  if (chosen && chosen !== engine && !busy) {
+    engine = chosen;
+    document.querySelectorAll(".engine").forEach(b =>
+      b.classList.toggle("active", b.dataset.engine === engine));
+    // The two engines use different chat models and the machine cannot hold
+    // both, so the first question after a switch pays a model load.
+    $("log3").textContent = engine === "agent-framework"
+      ? "Agent Framework selected — the first question will load qwen3-4b."
+      : "Raw client selected — the first question will load phi-4-mini.";
   }
 });
 

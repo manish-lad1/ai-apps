@@ -10,6 +10,7 @@ Two things are non-negotiable here and both get demonstrated live:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -69,13 +70,25 @@ def _build_context(retrieved) -> str:
     return "\n\n".join(blocks)
 
 
+def _strip_markdown_emphasis(text: str) -> str:
+    """Remove ** and __ emphasis markers from an answer.
+
+    qwen3 likes to bold the figures it quotes. Nothing renders markdown here,
+    so the asterisks arrive literally and read as noise on a projector. The
+    raw engine rarely does this; the rule is applied to both so the two
+    engines' answers differ only where the models genuinely differ.
+    """
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text, flags=re.DOTALL)
+    return re.sub(r"__(.+?)__", r"\1", text, flags=re.DOTALL)
+
+
 def _normalise_refusal(text: str) -> str:
     """Collapse near-misses onto the exact refusal string.
 
     Small models like to write "NOT FOUND." or wrap it in a sentence. The
     guarantee the demo makes is about the contract, not the punctuation.
     """
-    stripped = text.strip()
+    stripped = _strip_markdown_emphasis(text).strip()
     if NOT_FOUND in stripped.upper() and len(stripped) < 80:
         return NOT_FOUND
     return stripped
@@ -161,12 +174,44 @@ def run(
     *,
     alias: str = CHAT_ALIAS,
     quiet: bool = False,
+    engine: str = "raw",
 ) -> list[Answer]:
-    """Answer a list of questions against the persisted index."""
+    """Answer a list of questions against the persisted index.
+
+    engine="raw" uses the openai client on phi-4-mini. engine="agent-framework"
+    routes the same retrieval through Microsoft Agent Framework on qwen3-4b —
+    see stage3_agentframework for why that stage, and only that stage, can use
+    the framework here.
+    """
     if not quiet:
         console.stage_header(3, "ASK")
 
     index = stage2_index.load_index(index_path)
+
+    if engine == "agent-framework":
+        # Imported here so the raw path never pays for the framework import.
+        import stage3_agentframework
+
+        answerer = stage3_agentframework.AgentFrameworkAnswerer()
+        if not quiet:
+            console.info("Engine:  Microsoft Agent Framework")
+            console.loading_notice(f"{answerer.alias} via Agent Framework")
+        answerer.open()
+        if not quiet:
+            console.info(f"Chat:    {answerer.chat_model_id}")
+            console.info(f"Index:   {len(index.chunks)} chunks, top-{TOP_K} retrieval")
+            console.section("Questions")
+
+        answers = []
+        for question in questions:
+            answer = answerer.ask(question, index)
+            answers.append(answer)
+            if not quiet:
+                print_answer(answer)
+        return answers
+
+    if not quiet:
+        console.info("Engine:  raw openai client")
     chat_client, chat_model_id, embed_client, embed_model_id = open_clients(
         alias, quiet=quiet
     )

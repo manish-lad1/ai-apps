@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import queue
 import shutil
+import subprocess
 import threading
 import time
 from collections.abc import Iterator
@@ -33,6 +34,7 @@ import corpora
 import document_text
 import stage1_ingest
 import stage2_index
+import stage3_agentframework
 import stage3_ask
 import tools
 from corpora import MAX_UPLOAD_BYTES, Corpus
@@ -40,7 +42,10 @@ from foundry_endpoint import (
     CHAT_ALIAS,
     CHAT_COMPARISON_ALIAS,
     FoundryUnavailable,
+    connect,
     discover_service_url,
+    resolve_model_id,
+    unload,
 )
 from schemas import Manifest
 
@@ -58,6 +63,10 @@ class AskRequest(BaseModel):
     question: str
     corpus: str = "demo"
     model: str = CHAT_ALIAS
+    # "raw" is the openai client on phi-4-mini; "agent-framework" is Microsoft
+    # Agent Framework on qwen3-4b. Same retrieval, same prompt, different
+    # generation stack.
+    engine: str = "raw"
 
 
 def _corpus(key: str) -> Corpus:
@@ -361,6 +370,47 @@ def stage2(corpus_key: str) -> StreamingResponse:
     )
 
 
+# Below this much free memory, the two engines stop sharing the machine and
+# the idle chat model is evicted before the active one loads. Above it both
+# stay resident, which is what makes switching engines mid-demo instant
+# rather than a ten-second model load every time.
+MIN_FREE_BYTES_FOR_BOTH = 6 * 1024**3
+
+
+def _free_memory_bytes() -> int | None:
+    """Ask Foundry how much memory is actually free right now."""
+    try:
+        result = subprocess.run(
+            ["foundry", "status", "--output", "json"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            return None
+        return json.loads(result.stdout)["system"]["availableMemoryBytes"]
+    except (json.JSONDecodeError, KeyError, OSError, subprocess.SubprocessError):
+        return None
+
+
+def _free_other_chat_model(keep_alias: str) -> None:
+    """Evict the other engine's chat model, but only if memory is tight.
+
+    The engines run different models — phi-4-mini and qwen3-4b — and together
+    with the embedding model that is about 7.2 GB. On a machine with room for
+    all three, unloading would make every engine switch pay a model load for
+    nothing, which is exactly the wrong trade during a live A/B comparison.
+    """
+    free = _free_memory_bytes()
+    if free is not None and free >= MIN_FREE_BYTES_FOR_BOTH:
+        return
+
+    other = CHAT_COMPARISON_ALIAS if keep_alias == CHAT_ALIAS else CHAT_ALIAS
+    try:
+        client, _, _ = connect(keep_alias)
+        unload(resolve_model_id(client, other))
+    except FoundryUnavailable:
+        pass
+
+
 @app.post("/api/ask")
 def ask(request: AskRequest) -> dict:
     corpus = _corpus(request.corpus)
@@ -368,40 +418,69 @@ def ask(request: AskRequest) -> dict:
 
     if not question:
         raise HTTPException(status_code=400, detail="Ask something.")
+    if request.engine not in ("raw", "agent-framework"):
+        raise HTTPException(status_code=400, detail=f"Unknown engine {request.engine!r}.")
     if not corpus.index_path.exists():
         raise HTTPException(
             status_code=409,
             detail=f"No index for {corpus.label} yet — run stages 1 and 2 first.",
         )
 
+    # Foundry's port is ephemeral. If the service restarts mid-session the
+    # cached clients point at a dead port, so the discovered URL is part of
+    # the cache key — a restart transparently rebuilds them instead of
+    # failing every question until the web server is restarted too.
+    try:
+        current_url = discover_service_url()
+    except FoundryUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     with _ask_lock:
         stale = (
             _ask_state.get("model") != request.model
             or _ask_state.get("corpus") != corpus.key
+            or _ask_state.get("engine") != request.engine
+            or _ask_state.get("service_url") != current_url
         )
         if stale:
             _ask_state.clear()
+
         if not _ask_state:
             try:
-                clients = stage3_ask.open_clients(request.model, quiet=True)
+                if request.engine == "agent-framework":
+                    _free_other_chat_model(CHAT_COMPARISON_ALIAS)
+                    answerer = stage3_agentframework.AgentFrameworkAnswerer()
+                    answerer.open()
+                    engine_state = {"answerer": answerer, "model_id": answerer.chat_model_id}
+                else:
+                    _free_other_chat_model(request.model)
+                    clients = stage3_ask.open_clients(request.model, quiet=True)
+                    engine_state = {"clients": clients, "model_id": clients[1]}
             except FoundryUnavailable as exc:
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
+
             _ask_state.update(
                 {
                     "model": request.model,
                     "corpus": corpus.key,
-                    "clients": clients,
+                    "engine": request.engine,
+                    "service_url": current_url,
                     "index": stage2_index.load_index(corpus.index_path),
+                    **engine_state,
                 }
             )
 
-        chat_client, chat_model_id, embed_client, embed_model_id = _ask_state["clients"]
         built = _ask_state["index"]
+        chat_model_id = _ask_state["model_id"]
 
     started = time.perf_counter()
-    answer = stage3_ask.ask(
-        question, built, chat_client, chat_model_id, embed_client, embed_model_id
-    )
+    if request.engine == "agent-framework":
+        answer = _ask_state["answerer"].ask(question, built)
+    else:
+        chat_client, _, embed_client, embed_model_id = _ask_state["clients"]
+        answer = stage3_ask.ask(
+            question, built, chat_client, chat_model_id, embed_client, embed_model_id
+        )
     elapsed = time.perf_counter() - started
 
     ordered_sources: list[str] = []
@@ -414,6 +493,10 @@ def ask(request: AskRequest) -> dict:
         "answer": answer.text,
         "refused": answer.refused,
         "corpus": corpus.key,
+        "engine": request.engine,
+        "engine_label": (
+            "Agent Framework" if request.engine == "agent-framework" else "raw openai client"
+        ),
         "sources": ordered_sources,
         "retrieved": [
             {"filename": name, "score": score}

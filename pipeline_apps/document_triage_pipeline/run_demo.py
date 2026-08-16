@@ -6,6 +6,8 @@
     python run_demo.py --stage 3       just the default questions
     python run_demo.py --ask "..."     ask one question of the existing index
     python run_demo.py --model qwen3-4b   run against the comparison model
+    python run_demo.py --ask "..." --engine agent-framework
+                                       answer through Microsoft Agent Framework
 
 The per-stage flags exist for recovery: if something fails live, the stage
 that already succeeded left its output on disk and does not need redoing.
@@ -60,6 +62,16 @@ def parse_args() -> argparse.Namespace:
         default=CHAT_ALIAS,
         help=f"Chat model alias to use (default: {CHAT_ALIAS}).",
     )
+    parser.add_argument(
+        "--engine",
+        choices=("raw", "agent-framework"),
+        default="raw",
+        help=(
+            "Which stack answers in stage 3. 'raw' is the openai client on "
+            f"{CHAT_ALIAS}; 'agent-framework' is Microsoft Agent Framework on "
+            "qwen3-4b. Same retrieval either way."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -71,7 +83,7 @@ def main() -> int:
 
     try:
         if args.ask:
-            stage3_ask.run(INDEX_PATH, [args.ask], alias=args.model)
+            stage3_ask.run(INDEX_PATH, [args.ask], alias=args.model, engine=args.engine)
             return 0
 
         if args.stage in (None, 1):
@@ -84,7 +96,9 @@ def main() -> int:
 
         if args.stage in (None, 3):
             with console.timed("Stage 3"):
-                stage3_ask.run(INDEX_PATH, DEFAULT_QUESTIONS, alias=args.model)
+                stage3_ask.run(
+                    INDEX_PATH, DEFAULT_QUESTIONS, alias=args.model, engine=args.engine
+                )
 
     except FoundryUnavailable as exc:
         print()

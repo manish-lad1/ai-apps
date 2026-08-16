@@ -116,6 +116,7 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
 - **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
 - **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
+- **Two answering engines, side by side.** Stage 3 runs either on the raw `openai` client with phi-4-mini, or on **Microsoft Agent Framework** with qwen3-4b. Same retrieval, same prompt, same grounding contract — switch engines in the UI or with `--engine` and compare answers and latency directly. See [Agent Framework: where it works and where it does not](#agent-framework-where-it-works-and-where-it-does-not).
 - **Bring your own documents.** Drop PDFs, Word files, or plain text into the UI and they run through the identical three stages. PDF via `pypdf`, Word and RTF via the macOS `textutil` built-in — both entirely offline.
 
 ## How it works
@@ -224,17 +225,34 @@ RuntimeError: Httpx client is not set
 
 The pin conflict is not resolvable by reinstalling. **Do not import from `agent_framework.foundry` or `foundry_local`.** Talk to the OpenAI-compatible HTTP endpoint at `{base}/v1` with the `openai` package instead.
 
-### Agent Framework's chat clients do not work against Foundry Local either
+### Agent Framework: where it works and where it does not
 
-Tested, and worth knowing before you spend an afternoon on it:
+**It works for generation.** Stage 3 can be answered entirely through Microsoft Agent Framework — [`stage3_agentframework.py`](stage3_agentframework.py) — against the same local endpoint, and you can switch to it live:
 
-| Client | Transport | Tool calls parsed? |
+```bash
+.venv/bin/python run_demo.py --ask "What is the total due on invoice INV-2026-0412?" --engine agent-framework
+```
+
+Measured over the ten grounding cases, with identical retrieval and an identical prompt:
+
+| | raw `openai` + phi-4-mini | Agent Framework + qwen3-4b |
 |---|---|---|
-| `OpenAIChatClient` | `/v1/responses` | No — returns `<\|tool_call\|>` as message text |
-| `OpenAIChatCompletionClient` | `/v1/chat/completions`, streamed | No — returns `<tool_call>` in the content stream |
-| raw `openai` client | `/v1/chat/completions`, non-streamed | **Yes** |
+| Grounding cases passed | 8/10 | 8/10 |
+| Median latency | **2.3s** | 7.7s |
 
-Foundry Local accepts `tools` on all three paths and only parses the model's tool-call tokens back into structured `tool_calls` on the last one. Agent Framework streams by default, so both of its clients land on a broken path. This project therefore uses the raw `openai` client, as [`model_call.py`](model_call.py) documents.
+Same score, same two failures, 3.3× slower. The framework does not change the answers; it changes the plumbing. That is the honest result and it is what the UI shows side by side.
+
+**It does not work for tool calling.** Stage 1 needs structured tool calls, and neither Agent Framework client can deliver them here:
+
+| Client | Transport | What happens |
+|---|---|---|
+| `OpenAIChatClient` | `/v1/responses` | Returns `{"name": "read_file", "arguments": "{}"}` — the **arguments are discarded**. The framework then calls the function with nothing in it, hits three consecutive errors, and stops |
+| `OpenAIChatCompletionClient` | `/v1/chat/completions` | The model emits a valid call, sometimes with a malformed extra brace; Foundry's parser rejects it and returns it as plain text |
+| raw `openai` client, non-streamed | `/v1/chat/completions` | **Works**, which is why Stage 1 uses it |
+
+The first row is the one that ends the argument. It is not a prompt problem — five prompt variants, two token budgets, two and three tools, with and without `default_options`, all produced zero successful calls. An argument that never arrives cannot be recovered downstream.
+
+So this project uses Agent Framework exactly where it earns its place, and the raw client where the framework cannot go. [`model_call.py`](model_call.py) documents the raw path; [`stage3_agentframework.py`](stage3_agentframework.py) documents the framework one.
 
 ### Nothing auto-loads
 
