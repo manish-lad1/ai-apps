@@ -1,22 +1,17 @@
 """Turn an uploaded file of almost any office format into plain text.
 
-Four routes, all of them local:
+Three routes, all of them local:
 
   plain     .txt .md .csv .log        read the bytes
   pdf       .pdf                      pypdf, a pure-Python parser
   textutil  .docx .rtf .html .odt     the macOS built-in at /usr/bin/textutil
-  ocr       scans, .png .jpg .heic    the macOS Vision framework, via ocr.py
 
 `textutil` is worth knowing about: it ships with macOS, handles most of what
-Word and TextEdit produce, and costs no Python dependency at all. pypdf reads
-PDF text layers, because nothing in the standard library or in macOS does it
-from the command line.
+Word and TextEdit produce, and costs no Python dependency at all. pypdf is the
+one package this project adds beyond the original pinned set, because nothing
+in the standard library or in macOS reads PDF text from the command line.
 
-The OCR route is a fallback rather than a choice. A scanned PDF has no text
-layer, so pypdf returns nothing — and that empty result is exactly the signal
-to rasterise the pages and recognise them instead. See ocr.py.
-
-No route touches the network, so the offline guarantee is unaffected —
+Neither route touches the network, so the offline guarantee is unaffected —
 verify_offline.py covers this.
 
 Extraction results are cached next to the corpus in a `.extracted/` directory,
@@ -32,12 +27,8 @@ from pathlib import Path
 PLAIN_SUFFIXES = {".txt", ".md", ".csv", ".log", ".text"}
 PDF_SUFFIXES = {".pdf"}
 TEXTUTIL_SUFFIXES = {".docx", ".doc", ".rtf", ".rtfd", ".html", ".htm", ".odt", ".webarchive"}
-# Photographs and scans of documents, read by OCR.
-IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".heic", ".gif", ".bmp"}
 
-SUPPORTED_SUFFIXES = (
-    PLAIN_SUFFIXES | PDF_SUFFIXES | TEXTUTIL_SUFFIXES | IMAGE_SUFFIXES
-)
+SUPPORTED_SUFFIXES = PLAIN_SUFFIXES | PDF_SUFFIXES | TEXTUTIL_SUFFIXES
 
 CACHE_DIRNAME = ".extracted"
 
@@ -45,7 +36,7 @@ CACHE_DIRNAME = ".extracted"
 # outlives the code that produced it: the mtime check only notices a newer
 # source file, so editing this module leaves every existing cache entry
 # looking valid. That cost an hour of debugging a fix that was working.
-EXTRACTION_VERSION = 3
+EXTRACTION_VERSION = 2
 
 
 class UnsupportedDocument(ValueError):
@@ -67,48 +58,18 @@ def _extract_plain(path: Path) -> str:
 
 
 def _extract_pdf(path: Path) -> str:
-    """Read a PDF's text layer, falling back to OCR when it has none.
-
-    A born-digital PDF carries its text and pypdf reads it exactly. A scan
-    carries only pixels, and pypdf returns nothing at all — that empty result
-    is the signal to hand the file to the OCR path.
-    """
     from pypdf import PdfReader
 
     reader = PdfReader(str(path))
     pages = [(page.extract_text() or "").strip() for page in reader.pages]
     text = "\n\n".join(p for p in pages if p)
 
-    if text.strip():
-        return text
-
-    try:
-        import ocr
-    except ImportError as exc:
+    if not text.strip():
         raise UnsupportedDocument(
-            "No text found in this PDF. It is probably a scan, and OCR is "
-            "unavailable on this machine."
-        ) from exc
-
-    try:
-        return ocr.pdf_to_text(path)
-    except ocr.OCRUnavailable as exc:
-        raise UnsupportedDocument(f"No text layer, and OCR failed: {exc}") from exc
-
-
-def _extract_image(path: Path) -> str:
-    """OCR a photograph or scan supplied as an image rather than a PDF."""
-    try:
-        import ocr
-    except ImportError as exc:
-        raise UnsupportedDocument(
-            "Reading images requires OCR, which is unavailable on this machine."
-        ) from exc
-
-    try:
-        return ocr.image_to_text(path)
-    except ocr.OCRUnavailable as exc:
-        raise UnsupportedDocument(str(exc)) from exc
+            "No text found in this PDF. It is probably a scan — this pipeline "
+            "does not do OCR."
+        )
+    return text
 
 
 def _extract_textutil(path: Path) -> str:
@@ -159,8 +120,6 @@ def extract_text(path: Path) -> str:
         return normalise_whitespace(_extract_pdf(path))
     if suffix in TEXTUTIL_SUFFIXES:
         return normalise_whitespace(_extract_textutil(path))
-    if suffix in IMAGE_SUFFIXES:
-        return normalise_whitespace(_extract_image(path))
 
     raise UnsupportedDocument(
         f"{suffix or 'that file type'} is not supported. "
