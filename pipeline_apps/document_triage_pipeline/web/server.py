@@ -4,6 +4,9 @@ Everything here is a thin wrapper over the stage modules — the UI is a
 different way to drive the pipeline, not a second implementation of it.
 `run_demo.py` still works and still does exactly what it did.
 
+Two corpora are served: the curated demo documents, and whatever the user
+uploads. See corpora.py for why they are kept apart.
+
 Stage 1 takes the better part of a minute, so the long-running stages stream
 progress as server-sent events rather than leaving a POST hanging. The stage
 functions are synchronous, so each runs on a worker thread and pushes events
@@ -16,19 +19,23 @@ from __future__ import annotations
 
 import json
 import queue
+import shutil
 import threading
 import time
 from collections.abc import Iterator
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
+import corpora
+import document_text
 import stage1_ingest
 import stage2_index
 import stage3_ask
 import tools
+from corpora import MAX_UPLOAD_BYTES, Corpus
 from foundry_endpoint import (
     CHAT_ALIAS,
     CHAT_COMPARISON_ALIAS,
@@ -37,28 +44,36 @@ from foundry_endpoint import (
 )
 from schemas import Manifest
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DOCUMENTS_DIR = PROJECT_ROOT / "documents"
-OUTPUT_DIR = PROJECT_ROOT / "output"
-MANIFEST_PATH = OUTPUT_DIR / "manifest.json"
-INDEX_PATH = OUTPUT_DIR / "index.json"
 INDEX_HTML = Path(__file__).resolve().parent / "index.html"
 
 app = FastAPI(title="Document Triage Pipeline", docs_url=None, redoc_url=None)
 
-# Stage 3 keeps its models and index warm between questions — reloading a
-# 347 KB index per question is the difference between 3.5s and instant.
+# Stage 3 keeps its models and index warm between questions — reloading the
+# index per question is the difference between instant and a few seconds.
 _ask_state: dict = {}
 _ask_lock = threading.Lock()
 
 
 class AskRequest(BaseModel):
     question: str
+    corpus: str = "demo"
     model: str = CHAT_ALIAS
 
 
+def _corpus(key: str) -> Corpus:
+    try:
+        return corpora.get(key)
+    except KeyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _invalidate(corpus_key: str) -> None:
+    with _ask_lock:
+        if _ask_state.get("corpus") == corpus_key:
+            _ask_state.clear()
+
+
 def _sse(kind: str, payload: dict) -> str:
-    """Format one server-sent event."""
     return f"event: {kind}\ndata: {json.dumps(payload)}\n\n"
 
 
@@ -102,20 +117,13 @@ def index() -> str:
     return INDEX_HTML.read_text(encoding="utf-8")
 
 
-@app.get("/api/state")
-def state() -> dict:
-    """What the UI needs on load: service health and what has been built."""
-    try:
-        service_url = discover_service_url()
-        service_error = None
-    except FoundryUnavailable as exc:
-        service_url = None
-        service_error = str(exc)
+def _corpus_state(corpus: Corpus) -> dict:
+    corpus.ensure()
 
     manifest_summary = None
-    if MANIFEST_PATH.exists():
+    if corpus.manifest_path.exists():
         manifest = Manifest.model_validate_json(
-            MANIFEST_PATH.read_text(encoding="utf-8")
+            corpus.manifest_path.read_text(encoding="utf-8")
         )
         manifest_summary = {
             "model_id": manifest.model_id,
@@ -124,8 +132,8 @@ def state() -> dict:
         }
 
     index_summary = None
-    if INDEX_PATH.exists():
-        built = stage2_index.load_index(INDEX_PATH)
+    if corpus.index_path.exists():
+        built = stage2_index.load_index(corpus.index_path)
         index_summary = {
             "chunks": len(built.chunks),
             "dimensions": built.dimensions,
@@ -133,56 +141,202 @@ def state() -> dict:
         }
 
     return {
-        "service_url": service_url,
-        "service_error": service_error,
-        "documents": len(tools.list_files(DOCUMENTS_DIR)),
+        "key": corpus.key,
+        "label": corpus.label,
+        "writable": corpus.writable,
+        "documents": len(tools.list_files(corpus.directory)),
         "manifest": manifest_summary,
         "index": index_summary,
-        "models": {"chat": CHAT_ALIAS, "comparison": CHAT_COMPARISON_ALIAS},
     }
 
 
-@app.get("/api/corpus")
-def corpus() -> dict:
-    files = []
-    for name in tools.list_files(DOCUMENTS_DIR):
-        text = tools.read_file(DOCUMENTS_DIR, name)
-        files.append(
-            {
-                "filename": name,
-                "characters": len(text),
-                "preview": text[:180].strip(),
-            }
-        )
-    return {"files": files}
-
-
-@app.get("/api/document/{filename}")
-def document(filename: str) -> dict:
+@app.get("/api/state")
+def state() -> dict:
     try:
-        return {"filename": filename, "text": tools.read_file(DOCUMENTS_DIR, filename)}
+        service_url = discover_service_url()
+        service_error = None
+    except FoundryUnavailable as exc:
+        service_url = None
+        service_error = str(exc)
+
+    return {
+        "service_url": service_url,
+        "service_error": service_error,
+        "corpora": [_corpus_state(c) for c in corpora.ALL.values()],
+        "models": {"chat": CHAT_ALIAS, "comparison": CHAT_COMPARISON_ALIAS},
+        "supported_formats": sorted(
+            s.lstrip(".") for s in document_text.SUPPORTED_SUFFIXES
+        ),
+        "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024),
+    }
+
+
+@app.get("/api/corpus/{corpus_key}")
+def corpus_files(corpus_key: str) -> dict:
+    corpus = _corpus(corpus_key)
+    corpus.ensure()
+
+    files = []
+    for name in tools.list_files(corpus.directory):
+        source = corpus.directory / name
+        entry = {
+            "filename": name,
+            "bytes": source.stat().st_size,
+            "format": source.suffix.lower().lstrip(".") or "?",
+        }
+        try:
+            text = document_text.cached_text(corpus.directory, name)
+            entry["characters"] = len(text)
+            entry["preview"] = text[:180].strip()
+        except document_text.UnsupportedDocument as exc:
+            entry["characters"] = 0
+            entry["preview"] = ""
+            entry["error"] = str(exc)
+        files.append(entry)
+
+    return {"corpus": corpus.key, "files": files}
+
+
+@app.get("/api/document/{corpus_key}/{filename}")
+def document(corpus_key: str, filename: str) -> dict:
+    corpus = _corpus(corpus_key)
+    try:
+        return {
+            "filename": filename,
+            "text": tools.read_file(corpus.directory, filename),
+        }
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except document_text.UnsupportedDocument as exc:
+        raise HTTPException(status_code=415, detail=str(exc)) from exc
 
 
-@app.get("/api/manifest")
-def manifest() -> dict:
-    if not MANIFEST_PATH.exists():
+@app.get("/api/manifest/{corpus_key}")
+def manifest(corpus_key: str) -> dict:
+    corpus = _corpus(corpus_key)
+    if not corpus.manifest_path.exists():
         raise HTTPException(status_code=404, detail="Stage 1 has not run yet.")
-    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    return json.loads(corpus.manifest_path.read_text(encoding="utf-8"))
 
 
-@app.post("/api/stage1")
-def stage1(model: str = CHAT_ALIAS) -> StreamingResponse:
-    # A new manifest invalidates the warm Stage 3 state.
-    with _ask_lock:
-        _ask_state.clear()
+@app.post("/api/upload")
+async def upload(files: list[UploadFile] = File(...)) -> dict:
+    """Accept documents into the uploads corpus.
+
+    Uploads only ever land in the writable corpus — the demo corpus is
+    version-controlled content and the eval suite depends on it.
+    """
+    corpus = corpora.UPLOADS
+    corpus.ensure()
+
+    accepted, rejected = [], []
+
+    for upload_file in files:
+        raw_name = upload_file.filename or ""
+        try:
+            name = corpora.safe_filename(raw_name)
+        except ValueError as exc:
+            rejected.append({"filename": raw_name, "reason": str(exc)})
+            continue
+
+        if not document_text.is_supported(name):
+            rejected.append(
+                {
+                    "filename": name,
+                    "reason": f"Unsupported format. Supported: "
+                    f"{document_text.describe_supported()}.",
+                }
+            )
+            continue
+
+        name = corpora.unique_filename(corpus.directory, name)
+        destination = corpus.directory / name
+
+        # Stream to disk with a running size check, so an oversized file is
+        # stopped partway rather than after it has all been buffered.
+        written = 0
+        try:
+            with destination.open("wb") as sink:
+                while chunk := await upload_file.read(1024 * 1024):
+                    written += len(chunk)
+                    if written > MAX_UPLOAD_BYTES:
+                        raise ValueError(
+                            f"Larger than the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit."
+                        )
+                    sink.write(chunk)
+        except ValueError as exc:
+            destination.unlink(missing_ok=True)
+            rejected.append({"filename": name, "reason": str(exc)})
+            continue
+
+        # Parse it now rather than at stage time, so a corrupt or scanned file
+        # is reported while the user is still looking at the upload box.
+        try:
+            text = document_text.cached_text(corpus.directory, name)
+        except document_text.UnsupportedDocument as exc:
+            destination.unlink(missing_ok=True)
+            document_text.forget(corpus.directory, name)
+            rejected.append({"filename": name, "reason": str(exc)})
+            continue
+
+        accepted.append(
+            {"filename": name, "bytes": written, "characters": len(text)}
+        )
+
+    # Anything already built is now stale.
+    if accepted:
+        _invalidate(corpus.key)
+
+    return {"accepted": accepted, "rejected": rejected}
+
+
+@app.delete("/api/upload/{filename}")
+def delete_upload(filename: str) -> dict:
+    corpus = corpora.UPLOADS
+    target = (corpus.directory / filename).resolve()
+    if target.parent != corpus.directory.resolve():
+        raise HTTPException(status_code=400, detail="Refusing to delete outside uploads.")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="No such upload.")
+
+    target.unlink()
+    document_text.forget(corpus.directory, filename)
+    _invalidate(corpus.key)
+    return {"deleted": filename}
+
+
+@app.post("/api/uploads/clear")
+def clear_uploads() -> dict:
+    corpus = corpora.UPLOADS
+    removed = 0
+    if corpus.directory.is_dir():
+        removed = len(tools.list_files(corpus.directory))
+        shutil.rmtree(corpus.directory)
+    corpus.ensure()
+    corpus.manifest_path.unlink(missing_ok=True)
+    corpus.index_path.unlink(missing_ok=True)
+    _invalidate(corpus.key)
+    return {"removed": removed}
+
+
+@app.post("/api/stage1/{corpus_key}")
+def stage1(corpus_key: str, model: str = CHAT_ALIAS) -> StreamingResponse:
+    corpus = _corpus(corpus_key)
+    corpus.ensure()
+
+    if not tools.list_files(corpus.directory):
+        raise HTTPException(
+            status_code=409,
+            detail="No documents in this corpus yet — upload some first.",
+        )
+
+    _invalidate(corpus.key)
     return StreamingResponse(
         _stream_stage(
             stage1_ingest.run,
             {
-                "documents_dir": DOCUMENTS_DIR,
-                "output_path": MANIFEST_PATH,
+                "documents_dir": corpus.directory,
+                "output_path": corpus.manifest_path,
                 "alias": model,
             },
         ),
@@ -190,17 +344,17 @@ def stage1(model: str = CHAT_ALIAS) -> StreamingResponse:
     )
 
 
-@app.post("/api/stage2")
-def stage2() -> StreamingResponse:
-    with _ask_lock:
-        _ask_state.clear()
+@app.post("/api/stage2/{corpus_key}")
+def stage2(corpus_key: str) -> StreamingResponse:
+    corpus = _corpus(corpus_key)
+    _invalidate(corpus.key)
     return StreamingResponse(
         _stream_stage(
             stage2_index.run,
             {
-                "documents_dir": DOCUMENTS_DIR,
-                "manifest_path": MANIFEST_PATH,
-                "index_path": INDEX_PATH,
+                "documents_dir": corpus.directory,
+                "manifest_path": corpus.manifest_path,
+                "index_path": corpus.index_path,
             },
         ),
         media_type="text/event-stream",
@@ -209,16 +363,23 @@ def stage2() -> StreamingResponse:
 
 @app.post("/api/ask")
 def ask(request: AskRequest) -> dict:
+    corpus = _corpus(request.corpus)
     question = request.question.strip()
+
     if not question:
         raise HTTPException(status_code=400, detail="Ask something.")
-    if not INDEX_PATH.exists():
+    if not corpus.index_path.exists():
         raise HTTPException(
-            status_code=409, detail="No index yet — run stages 1 and 2 first."
+            status_code=409,
+            detail=f"No index for {corpus.label} yet — run stages 1 and 2 first.",
         )
 
     with _ask_lock:
-        if _ask_state.get("model") != request.model:
+        stale = (
+            _ask_state.get("model") != request.model
+            or _ask_state.get("corpus") != corpus.key
+        )
+        if stale:
             _ask_state.clear()
         if not _ask_state:
             try:
@@ -228,8 +389,9 @@ def ask(request: AskRequest) -> dict:
             _ask_state.update(
                 {
                     "model": request.model,
+                    "corpus": corpus.key,
                     "clients": clients,
-                    "index": stage2_index.load_index(INDEX_PATH),
+                    "index": stage2_index.load_index(corpus.index_path),
                 }
             )
 
@@ -242,7 +404,6 @@ def ask(request: AskRequest) -> dict:
     )
     elapsed = time.perf_counter() - started
 
-    # Deduplicate sources while preserving retrieval rank.
     ordered_sources: list[str] = []
     for name in answer.sources:
         if name not in ordered_sources:
@@ -252,6 +413,7 @@ def ask(request: AskRequest) -> dict:
         "question": answer.question,
         "answer": answer.text,
         "refused": answer.refused,
+        "corpus": corpus.key,
         "sources": ordered_sources,
         "retrieved": [
             {"filename": name, "score": score}

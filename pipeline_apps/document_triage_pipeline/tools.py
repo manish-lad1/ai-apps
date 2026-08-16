@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import document_text
 from schemas import DocumentType
 
 # Cap on how much of a document goes into a single prompt. The model advertises
@@ -185,12 +186,26 @@ STAGE1_TOOLS = [LIST_FILES_TOOL, READ_FILE_TOOL, WRITE_MANIFEST_TOOL]
 
 
 def list_files(documents_dir: Path) -> list[str]:
-    """Return the corpus filenames, sorted so runs are reproducible."""
-    return sorted(path.name for path in documents_dir.glob("*.txt"))
+    """Return the corpus filenames, sorted so runs are reproducible.
+
+    Anything document_text can read counts, so an uploaded PDF sits alongside
+    the demo corpus's .txt files and flows through the same pipeline. Hidden
+    files and the .extracted cache directory are skipped.
+    """
+    if not documents_dir.is_dir():
+        return []
+
+    return sorted(
+        path.name
+        for path in documents_dir.iterdir()
+        if path.is_file()
+        and not path.name.startswith(".")
+        and document_text.is_supported(path.name)
+    )
 
 
 def read_file(documents_dir: Path, filename: str) -> str:
-    """Read one document, truncated to the per-call cap.
+    """Read one document as text, truncated to the per-call cap.
 
     The filename is resolved against the corpus directory and rejected if it
     escapes — the model supplies this argument, so it is untrusted input.
@@ -201,7 +216,7 @@ def read_file(documents_dir: Path, filename: str) -> str:
     if not candidate.is_file():
         raise FileNotFoundError(f"No such document: {filename!r}")
 
-    text = candidate.read_text(encoding="utf-8")
+    text = document_text.cached_text(documents_dir, filename)
     if len(text) > MAX_DOCUMENT_CHARS:
         return text[:MAX_DOCUMENT_CHARS] + "\n[truncated]"
     return text

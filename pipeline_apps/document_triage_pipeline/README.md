@@ -76,7 +76,14 @@ Or drive the same pipeline from a browser instead of the terminal:
 .venv/bin/python run_web.py
 ```
 
-Then open `http://127.0.0.1:8000`. The UI runs each stage with live progress, shows the manifest as a sortable table, and prints retrieval scores beside every answer. It adds no dependencies — FastAPI and uvicorn are already in the pinned set — and loads no external CSS, fonts, or scripts, so it works with the wifi off exactly like the terminal path.
+Then open `http://127.0.0.1:8000`. The UI runs each stage with live progress, shows the manifest as a table, and prints retrieval scores beside every answer. It loads no external CSS, fonts, or scripts, so it works with the wifi off exactly like the terminal path.
+
+The UI serves two separate collections, switched by the tabs at the top:
+
+- **Demo corpus** — the curated ten. Read-only, and what the talk runs on.
+- **My documents** — drag in your own. They are classified, extracted, chunked, embedded, and become answerable, exactly like the demo set.
+
+Uploads accept `.txt`, `.md`, `.csv`, `.pdf`, `.docx`, `.rtf`, `.html`, and `.odt`, up to 20 MB each. Each collection keeps its own manifest and index, so uploading nothing disturbs the demo corpus or the eval suite. Uploads are gitignored.
 
 Individual stages, for recovering from a failure mid-demo without redoing the work that already succeeded:
 
@@ -98,6 +105,7 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
 - **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
 - **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
+- **Bring your own documents.** Drop PDFs, Word files, or plain text into the UI and they run through the identical three stages. PDF via `pypdf`, Word and RTF via the macOS `textutil` built-in — both entirely offline.
 
 ## How it works
 
@@ -227,6 +235,12 @@ Every stage calls `ensure_loaded()` first. This is the cold start you see on the
 ### Memory
 
 24 GB unified memory with roughly 6 GB free will not hold both chat models at once. The eval harness unloads one before loading the other. Stage 3 holds one chat model plus the 515 MB embedding model, which fits comfortably.
+
+### Uploaded documents are classified against a fixed six-type list
+
+`DocumentType` is a closed enum — offer letter, invoice, contract, medical note, ID document, unknown — chosen for the demo corpus. Upload something outside it, such as board minutes, and Stage 1 correctly returns `unknown`. That is the schema working as designed rather than a bug, but if you point this at your own document set, widen the enum in [`schemas.py`](schemas.py) and the type definitions in `stage1_ingest.SYSTEM_PROMPT` to match. Extraction, indexing, and grounded answering are unaffected and work on any document.
+
+Scanned PDFs are also rejected on upload: there is no OCR here, so a PDF with no embedded text layer reports that rather than indexing an empty document.
 
 ### Remaining accuracy gaps
 

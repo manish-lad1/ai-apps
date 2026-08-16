@@ -25,22 +25,18 @@
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
+    margin: 0; background: var(--bg); color: var(--text);
     font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  code, .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
   header {
-    padding: 22px 28px;
-    border-bottom: 1px solid var(--line);
+    padding: 20px 28px; border-bottom: 1px solid var(--line);
     display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
   }
-  h1 { margin: 0; font-size: 24px; letter-spacing: -0.2px; }
+  h1 { margin: 0; font-size: 23px; letter-spacing: -0.2px; }
   .tagline { color: var(--muted); font-size: 15px; }
-  .status { margin-left: auto; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .status { margin-left: auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   .pill {
     font-size: 13px; padding: 5px 11px; border-radius: 999px;
     border: 1px solid var(--line); background: var(--panel); color: var(--muted);
@@ -48,16 +44,22 @@
   .pill.live { color: var(--ok); border-color: #23543f; }
   .pill.down { color: var(--bad); border-color: #5c2a2a; }
 
-  main { padding: 24px 28px 64px; max-width: 1280px; margin: 0 auto; }
+  main { padding: 22px 28px 64px; max-width: 1280px; margin: 0 auto; }
+
+  /* corpus switcher */
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab {
+    font: inherit; font-size: 14.5px; padding: 9px 16px; cursor: pointer;
+    background: var(--panel); color: var(--muted);
+    border: 1px solid var(--line); border-radius: 9px;
+  }
+  .tab.active { background: var(--panel-2); color: var(--text); border-color: var(--accent); }
+  .tab .count { color: var(--muted); font-size: 13px; }
+  .tab.active .count { color: var(--accent); }
+
   .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
-  .card {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 18px 20px;
-  }
-  .card h2 {
-    margin: 0 0 4px; font-size: 13px; letter-spacing: 1.4px;
-    text-transform: uppercase; color: var(--accent);
-  }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .card h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); }
   .card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
   .card p.hint { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
 
@@ -67,8 +69,9 @@
     padding: 9px 18px; border-radius: 8px; cursor: pointer;
   }
   button:hover:not(:disabled) { filter: brightness(1.1); }
-  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
   button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button.danger { background: transparent; color: var(--bad); border: 1px solid #5c2a2a; font-size: 13px; padding: 5px 11px; }
 
   .bar { height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; margin: 14px 0 8px; }
   .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
@@ -81,6 +84,19 @@
     color: var(--accent); margin: 0 0 12px;
   }
 
+  /* upload */
+  #drop {
+    border: 1.5px dashed var(--line); border-radius: 12px; padding: 26px;
+    text-align: center; color: var(--muted); background: var(--panel);
+    transition: border-color .15s, background .15s;
+  }
+  #drop.over { border-color: var(--accent); background: var(--panel-2); color: var(--text); }
+  #drop .big { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+  #drop .formats { font-size: 13px; margin-top: 10px; }
+  .upload-report { margin-top: 12px; font-size: 14px; }
+  .upload-report .bad { color: var(--bad); }
+  .upload-report .ok { color: var(--ok); }
+
   /* The manifest is 8 columns wide. Let the table scroll inside its own box
      rather than letting it push the whole page sideways. */
   .scroller { overflow-x: auto; border-radius: 10px; }
@@ -89,13 +105,14 @@
   th { color: var(--muted); font-weight: 600; font-size: 12.5px; letter-spacing: .6px; text-transform: uppercase; }
   tbody tr:hover { background: var(--panel-2); }
   td.file { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
-  .tag {
-    display: inline-block; font-size: 12.5px; padding: 2px 9px; border-radius: 6px;
-    background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap;
-  }
+  a.filelink { color: var(--accent); text-decoration: none; }
+  a.filelink:hover { text-decoration: underline; }
+  .tag { display: inline-block; font-size: 12.5px; padding: 2px 9px; border-radius: 6px;
+         background: var(--panel-2); border: 1px solid var(--line); white-space: nowrap; }
   .tag.pii { color: var(--pii); border-color: #4a3663; }
   .tag.clean { color: var(--muted); }
   .tag.type { color: var(--accent); border-color: #24435f; }
+  .tag.fmt { color: var(--muted); text-transform: uppercase; font-size: 11.5px; }
 
   .askbar { display: flex; gap: 10px; }
   .askbar input {
@@ -123,6 +140,8 @@
   .score.top { color: var(--ok); }
 
   .empty { color: var(--muted); font-size: 14.5px; padding: 14px 0; }
+  .hidden { display: none !important; }
+
   dialog {
     background: var(--panel); color: var(--text); border: 1px solid var(--line);
     border-radius: 12px; max-width: 800px; width: 92vw; padding: 0;
@@ -139,14 +158,26 @@
   <span class="tagline">Classify, index, and interrogate documents — entirely on this machine</span>
   <div class="status">
     <span class="pill" id="pill-service">checking service…</span>
-    <span class="pill" id="pill-corpus">—</span>
     <span class="pill" id="pill-index">—</span>
   </div>
 </header>
 
 <main>
 
-  <div class="stages">
+  <div class="tabs" id="tabs"></div>
+
+  <section class="block" id="upload-block" style="margin-top:0">
+    <h2>Add your documents</h2>
+    <div id="drop">
+      <div class="big">Drop files here, or <button id="btn-pick" class="ghost" style="padding:5px 12px;font-size:14px">choose files</button></div>
+      <div>They are classified, extracted, indexed, and then you can ask questions about them.</div>
+      <div class="formats" id="formats">—</div>
+      <input type="file" id="filein" multiple class="hidden">
+    </div>
+    <div class="upload-report" id="upload-report"></div>
+  </section>
+
+  <div class="stages" style="margin-top:22px">
     <div class="card">
       <h2>Stage 1</h2>
       <h3>Ingest, classify, extract</h3>
@@ -169,16 +200,16 @@
       <h2>Stage 3</h2>
       <h3>Ask</h3>
       <p class="hint">Answers come only from retrieved context. Anything else returns <code>NOT FOUND</code>.</p>
-      <button id="btn-runall" class="ghost">Run stages 1 and 2, then ask</button>
+      <button id="btn-runall" class="ghost">Run stages 1 and 2</button>
       <div class="bar"><i id="bar3"></i></div>
       <div class="stage-log" id="log3">Ready when the index exists.</div>
     </div>
   </div>
 
   <section class="block">
-    <h2>Ask the collection</h2>
+    <h2>Ask <span id="ask-scope" class="tagline"></span></h2>
     <div class="askbar">
-      <input id="q" placeholder="e.g. What is the total due on invoice INV-2026-0412?" autocomplete="off">
+      <input id="q" placeholder="Ask a question about these documents…" autocomplete="off">
       <button id="btn-ask">Ask</button>
     </div>
     <div class="suggest" id="suggest"></div>
@@ -191,7 +222,7 @@
   </section>
 
   <section class="block">
-    <h2>Corpus</h2>
+    <h2>Documents <span id="corpus-actions"></span></h2>
     <div id="corpus-wrap"><p class="empty">Loading…</p></div>
   </section>
 
@@ -208,7 +239,9 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
-const SUGGESTIONS = [
+// Suggestions only make sense against the curated corpus; uploaded documents
+// get generic prompts instead.
+const DEMO_SUGGESTIONS = [
   ["Single document", "What is the total due on invoice INV-2026-0412?"],
   ["Spans two documents", "What is the hourly rate in the agreement that invoice INV-BW-2291 was issued against?"],
   ["Should refuse", "What is Amelia Hart's home address?"],
@@ -216,14 +249,21 @@ const SUGGESTIONS = [
   ["Medical", "What medication was Ravi Shah started on?"],
 ];
 
+let corpus = "demo";
+let serverState = null;
 let busy = false;
+const lastElapsed = {};   // keyed "<corpus>:stage1"
+
+function elapsedKey(stage) { return `${corpus}:${stage}`; }
+function withElapsed(stage, text) {
+  const v = lastElapsed[elapsedKey(stage)];
+  return v ? `${text} · ${v}s` : text;
+}
 
 function setBusy(state) {
   busy = state;
-  for (const id of ["btn-stage1", "btn-stage2", "btn-runall", "btn-ask"]) {
-    $(id).disabled = state;
-  }
-  document.querySelectorAll("#suggest button").forEach(b => b.disabled = state);
+  ["btn-stage1", "btn-stage2", "btn-runall", "btn-ask", "btn-pick"].forEach(id => $(id).disabled = state);
+  document.querySelectorAll("#suggest button, .tab, .danger").forEach(b => b.disabled = state);
 }
 
 function esc(s) {
@@ -232,54 +272,111 @@ function esc(s) {
   ));
 }
 
-// ---- state -----------------------------------------------------------
-// Timings survive a state refresh — how long a cold start took is the most
-// interesting number on the screen, and refreshState would otherwise wipe it.
-const lastElapsed = { stage1: null, stage2: null };
-
-function withElapsed(key, text) {
-  return lastElapsed[key] ? `${text} · ${lastElapsed[key]}s` : text;
+function kb(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
+  return (bytes / 1024 / 1024).toFixed(1) + " MB";
 }
 
+function currentCorpus() {
+  return serverState?.corpora.find(c => c.key === corpus);
+}
+
+// ---- state -----------------------------------------------------------
 async function refreshState() {
-  const s = await (await fetch("/api/state")).json();
+  serverState = await (await fetch("/api/state")).json();
 
   const svc = $("pill-service");
-  if (s.service_url) {
-    svc.textContent = "Foundry Local " + s.service_url.replace("http://", "");
+  if (serverState.service_url) {
+    svc.textContent = "Foundry Local " + serverState.service_url.replace("http://", "");
     svc.className = "pill live";
   } else {
     svc.textContent = "service unavailable";
     svc.className = "pill down";
-    $("log1").textContent = s.service_error || "Foundry Local is not running.";
-    $("log1").classList.add("err");
   }
 
-  $("pill-corpus").textContent = s.documents + " documents";
-  $("pill-index").textContent = s.index
-    ? `index: ${s.index.chunks} chunks @ ${s.index.dimensions}d`
-    : "index: not built";
+  $("formats").textContent =
+    "Supported: " + serverState.supported_formats.join(", ") +
+    ` · up to ${serverState.max_upload_mb} MB each`;
 
-  if (s.manifest) {
+  // tabs
+  $("tabs").innerHTML = serverState.corpora.map(c => `
+    <button class="tab ${c.key === corpus ? "active" : ""}" data-corpus="${c.key}">
+      ${esc(c.label)} <span class="count">${c.documents}</span>
+    </button>`).join("");
+
+  renderCorpusView();
+  return serverState;
+}
+
+function renderCorpusView() {
+  const c = currentCorpus();
+  if (!c) return;
+
+  $("upload-block").classList.toggle("hidden", !c.writable);
+  $("ask-scope").textContent = `— ${c.label}`;
+
+  $("pill-index").textContent = c.index
+    ? `${c.label}: ${c.index.chunks} chunks @ ${c.index.dimensions}d`
+    : `${c.label}: not indexed`;
+
+  // stage 1
+  if (c.manifest) {
     $("log1").textContent = withElapsed("stage1",
-      `${s.manifest.triaged} triaged, ${s.manifest.failed} failed — ${s.manifest.model_id}`);
+      `${c.manifest.triaged} triaged, ${c.manifest.failed} failed — ${c.manifest.model_id}`);
     $("bar1").style.width = "100%";
-    loadManifest();
+  } else {
+    $("log1").textContent = c.documents ? "Not run yet." : "No documents yet.";
+    $("bar1").style.width = "0";
   }
-  if (s.index) {
+  $("log1").classList.remove("err");
+
+  // stage 2
+  if (c.index) {
     $("log2").textContent = withElapsed("stage2",
-      `${s.index.chunks} chunks at ${s.index.dimensions} dimensions — ${s.index.embedding_model_id}`);
+      `${c.index.chunks} chunks at ${c.index.dimensions} dimensions`);
     $("bar2").style.width = "100%";
     $("log3").textContent = "Ready. Ask a question below.";
+    $("bar3").style.width = "0";
+  } else {
+    $("log2").textContent = "Not run yet.";
+    $("bar2").style.width = "0";
+    $("log3").textContent = "Run stages 1 and 2 first.";
+    $("bar3").style.width = "0";
   }
-  return s;
+  $("log2").classList.remove("err");
+
+  // suggestions
+  const list = corpus === "demo"
+    ? DEMO_SUGGESTIONS
+    : [["Summarise", "What is this document about?"],
+       ["Key dates", "What dates are mentioned?"],
+       ["Amounts", "What amounts of money are mentioned?"],
+       ["Should refuse", "What is the author's favourite colour?"]];
+  $("suggest").innerHTML = list.map(([label, q]) =>
+    `<button title="${esc(q)}" data-q="${esc(q)}">${esc(label)}</button>`).join("");
+
+  $("corpus-actions").innerHTML = c.writable && c.documents
+    ? `<button class="danger" id="btn-clear">Remove all uploads</button>` : "";
+  if ($("btn-clear")) $("btn-clear").onclick = clearUploads;
+
+  $("answers").innerHTML = "";
+  loadManifest();
+  loadCorpus();
 }
 
 // ---- SSE stage runner ------------------------------------------------
 // fetch + ReadableStream rather than EventSource, because EventSource
 // cannot issue a POST.
-async function runStage(url, { onEvent }) {
+async function runStage(url, onEvent) {
   const response = await fetch(url, { method: "POST" });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: response.statusText }));
+    onEvent("error", { message: err.detail });
+    return;
+  }
+
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -288,7 +385,6 @@ async function runStage(url, { onEvent }) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-
     const frames = buffer.split("\n\n");
     buffer = frames.pop();
     for (const frame of frames) {
@@ -304,35 +400,32 @@ async function runStage1() {
   $("log1").classList.remove("err");
   $("bar1").style.width = "0";
   $("log1").textContent = "Loading model (cold start)…";
-  let failed = false;
-  let total = 0;
+  let failed = false, total = 0;
 
-  await runStage("/api/stage1", {
-    onEvent: (kind, d) => {
-      if (kind === "start") {
-        total = d.total;
-        $("log1").textContent = `0 / ${d.total} — ${d.model_id}`;
-      } else if (kind === "document_started") {
-        $("log1").textContent = `Reading ${d.filename}…`;
-      } else if (kind === "document") {
-        $("bar1").style.width = (100 * d.position / (total || 1)) + "%";
-        $("log1").textContent = `${d.position} / ${total} — ${d.filename}`;
-      } else if (kind === "finished") {
-        $("bar1").style.width = "100%";
-        $("log1").textContent = `${d.triaged} triaged, ${d.failed} failed`;
-      } else if (kind === "elapsed") {
-        lastElapsed.stage1 = d.seconds;
-        $("log1").textContent += ` · ${d.seconds}s`;
-      } else if (kind === "error") {
-        failed = true;
-        $("log1").textContent = d.message;
-        $("log1").classList.add("err");
-      }
+  await runStage(`/api/stage1/${corpus}`, (kind, d) => {
+    if (kind === "start") {
+      total = d.total;
+      $("log1").textContent = `0 / ${d.total} — ${d.model_id}`;
+    } else if (kind === "document_started") {
+      $("log1").textContent = `Reading ${d.filename}…`;
+    } else if (kind === "document") {
+      $("bar1").style.width = (100 * d.position / (total || 1)) + "%";
+      $("log1").textContent = `${d.position} / ${total} — ${d.filename}`;
+    } else if (kind === "finished") {
+      $("bar1").style.width = "100%";
+      $("log1").textContent = `${d.triaged} triaged, ${d.failed} failed`;
+    } else if (kind === "elapsed") {
+      lastElapsed[elapsedKey("stage1")] = d.seconds;
+      $("log1").textContent += ` · ${d.seconds}s`;
+    } else if (kind === "error") {
+      failed = true;
+      $("log1").textContent = d.message;
+      $("log1").classList.add("err");
     }
   });
 
   setBusy(false);
-  if (!failed) { await loadManifest(); await refreshState(); }
+  if (!failed) await refreshState();
   return !failed;
 }
 
@@ -343,31 +436,81 @@ async function runStage2() {
   $("log2").textContent = "Loading embedding model…";
   let failed = false;
 
-  await runStage("/api/stage2", {
-    onEvent: (kind, d) => {
-      if (kind === "start") {
-        $("log2").textContent = `Embedding ${d.total} chunks — ${d.model_id}`;
-      } else if (kind === "progress") {
-        $("bar2").style.width = (100 * d.done / d.total) + "%";
-        $("log2").textContent = `${d.done} / ${d.total} chunks`;
-      } else if (kind === "finished") {
-        $("bar2").style.width = "100%";
-        $("log2").textContent =
-          `${d.chunks} chunks at ${d.dimensions} dimensions (${d.size_kb} KB)`;
-      } else if (kind === "elapsed") {
-        lastElapsed.stage2 = d.seconds;
-        $("log2").textContent += ` · ${d.seconds}s`;
-      } else if (kind === "error") {
-        failed = true;
-        $("log2").textContent = d.message;
-        $("log2").classList.add("err");
-      }
+  await runStage(`/api/stage2/${corpus}`, (kind, d) => {
+    if (kind === "start") {
+      $("log2").textContent = `Embedding ${d.total} chunks — ${d.model_id}`;
+    } else if (kind === "progress") {
+      $("bar2").style.width = (100 * d.done / d.total) + "%";
+      $("log2").textContent = `${d.done} / ${d.total} chunks`;
+    } else if (kind === "finished") {
+      $("bar2").style.width = "100%";
+      $("log2").textContent = `${d.chunks} chunks at ${d.dimensions} dimensions (${d.size_kb} KB)`;
+    } else if (kind === "elapsed") {
+      lastElapsed[elapsedKey("stage2")] = d.seconds;
+      $("log2").textContent += ` · ${d.seconds}s`;
+    } else if (kind === "error") {
+      failed = true;
+      $("log2").textContent = d.message;
+      $("log2").classList.add("err");
     }
   });
 
   setBusy(false);
   if (!failed) await refreshState();
   return !failed;
+}
+
+// ---- upload ----------------------------------------------------------
+async function uploadFiles(fileList) {
+  if (!fileList.length || busy) return;
+  setBusy(true);
+  $("upload-report").innerHTML = `Uploading ${fileList.length} file(s)…`;
+
+  const form = new FormData();
+  for (const f of fileList) form.append("files", f);
+
+  try {
+    const response = await fetch("/api/upload", { method: "POST", body: form });
+    const d = await response.json();
+
+    if (!response.ok) {
+      $("upload-report").innerHTML = `<span class="bad">${esc(d.detail || "Upload failed")}</span>`;
+    } else {
+      const bits = [];
+      if (d.accepted.length) {
+        bits.push(`<span class="ok">Added ${d.accepted.length}:</span> ` +
+          d.accepted.map(a => `<span class="src">${esc(a.filename)}</span> (${a.characters} chars)`).join(", "));
+      }
+      for (const r of d.rejected) {
+        bits.push(`<span class="bad">Rejected ${esc(r.filename)}: ${esc(r.reason)}</span>`);
+      }
+      if (d.accepted.length) bits.push("Now run stages 1 and 2.");
+      $("upload-report").innerHTML = bits.join("<br>");
+    }
+  } catch (e) {
+    $("upload-report").innerHTML = `<span class="bad">${esc(String(e))}</span>`;
+  }
+
+  setBusy(false);
+  await refreshState();
+}
+
+async function deleteUpload(filename) {
+  if (busy) return;
+  setBusy(true);
+  await fetch("/api/upload/" + encodeURIComponent(filename), { method: "DELETE" });
+  setBusy(false);
+  $("upload-report").innerHTML = `Removed <span class="src">${esc(filename)}</span>. Re-run stages 1 and 2.`;
+  await refreshState();
+}
+
+async function clearUploads() {
+  if (busy) return;
+  setBusy(true);
+  await fetch("/api/uploads/clear", { method: "POST" });
+  setBusy(false);
+  $("upload-report").textContent = "All uploads removed.";
+  await refreshState();
 }
 
 // ---- ask -------------------------------------------------------------
@@ -386,7 +529,7 @@ async function ask(question) {
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question })
+      body: JSON.stringify({ question, corpus })
     });
 
     if (!response.ok) {
@@ -421,8 +564,12 @@ async function ask(question) {
 
 // ---- manifest and corpus --------------------------------------------
 async function loadManifest() {
-  const response = await fetch("/api/manifest");
-  if (!response.ok) return;
+  const response = await fetch(`/api/manifest/${corpus}`);
+  if (!response.ok) {
+    $("manifest-count").textContent = "";
+    $("manifest-wrap").innerHTML = `<p class="empty">Stage 1 has not run for this corpus yet.</p>`;
+    return;
+  }
   const m = await response.json();
 
   const rows = m.records.map(r => {
@@ -431,7 +578,7 @@ async function loadManifest() {
       ? `<span class="tag pii">PII${r.pii_types?.length ? " · " + r.pii_types.length : ""}</span>`
       : `<span class="tag clean">none</span>`;
     return `<tr>
-      <td class="file"><a href="#" onclick="showDoc('${esc(r.filename)}');return false" style="color:var(--accent)">${esc(r.filename)}</a></td>
+      <td class="file"><a href="#" class="filelink" data-doc="${esc(r.filename)}">${esc(r.filename)}</a></td>
       <td><span class="tag type">${esc(r.document_type)}</span></td>
       <td>${pii}</td>
       <td>${esc(f.person_name || "—")}</td>
@@ -447,29 +594,38 @@ async function loadManifest() {
       <td colspan="7" style="color:var(--bad)">${esc(f.error)}</td>
     </tr>`).join("");
 
-  $("manifest-count").textContent =
-    `— ${m.records.length} records, ${m.failures.length} failures`;
+  $("manifest-count").textContent = `— ${m.records.length} records, ${m.failures.length} failures`;
   $("manifest-wrap").innerHTML = `<div class="scroller"><table>
     <thead><tr>
       <th>File</th><th>Type</th><th>Personal data</th><th>Person</th>
       <th>Organisation</th><th>Reference</th><th>Amount</th><th>Date</th>
-    </tr></thead>
-    <tbody>${rows}${failures}</tbody></table></div>`;
+    </tr></thead><tbody>${rows}${failures}</tbody></table></div>`;
 }
 
 async function loadCorpus() {
-  const { files } = await (await fetch("/api/corpus")).json();
+  const { files } = await (await fetch(`/api/corpus/${corpus}`)).json();
+  const writable = currentCorpus()?.writable;
+
+  if (!files.length) {
+    $("corpus-wrap").innerHTML = `<p class="empty">${
+      writable ? "No documents uploaded yet." : "No documents found."}</p>`;
+    return;
+  }
+
   $("corpus-wrap").innerHTML = `<div class="scroller"><table>
-    <thead><tr><th>File</th><th>Size</th><th>Preview</th></tr></thead>
+    <thead><tr><th>File</th><th>Format</th><th>Size</th><th>Preview</th>${writable ? "<th></th>" : ""}</tr></thead>
     <tbody>${files.map(f => `<tr>
-      <td class="file"><a href="#" onclick="showDoc('${esc(f.filename)}');return false" style="color:var(--accent)">${esc(f.filename)}</a></td>
-      <td class="mono" style="font-size:12.5px;color:var(--muted)">${f.characters} ch</td>
-      <td style="color:var(--muted);font-size:13.5px">${esc(f.preview)}…</td>
+      <td class="file"><a href="#" class="filelink" data-doc="${esc(f.filename)}">${esc(f.filename)}</a></td>
+      <td><span class="tag fmt">${esc(f.format)}</span></td>
+      <td class="mono" style="font-size:12.5px;color:var(--muted)">${kb(f.bytes)}</td>
+      <td style="color:var(--muted);font-size:13.5px">${
+        f.error ? `<span style="color:var(--bad)">${esc(f.error)}</span>` : esc(f.preview) + "…"}</td>
+      ${writable ? `<td><button class="danger" data-del="${esc(f.filename)}">Remove</button></td>` : ""}
     </tr>`).join("")}</tbody></table></div>`;
 }
 
 async function showDoc(filename) {
-  const response = await fetch("/api/document/" + encodeURIComponent(filename));
+  const response = await fetch(`/api/document/${corpus}/` + encodeURIComponent(filename));
   if (!response.ok) return;
   const d = await response.json();
   $("doc-title").textContent = d.filename;
@@ -480,22 +636,45 @@ async function showDoc(filename) {
 // ---- wiring ----------------------------------------------------------
 $("btn-stage1").onclick = runStage1;
 $("btn-stage2").onclick = runStage2;
-$("btn-runall").onclick = async () => {
-  if (await runStage1()) await runStage2();
-};
+$("btn-runall").onclick = async () => { if (await runStage1()) await runStage2(); };
 $("btn-ask").onclick = () => ask($("q").value);
 $("q").addEventListener("keydown", e => { if (e.key === "Enter") ask($("q").value); });
 
-$("suggest").innerHTML = SUGGESTIONS.map(([label, q]) =>
-  `<button title="${esc(q)}" data-q="${esc(q)}">${esc(label)}</button>`
-).join("");
+$("tabs").addEventListener("click", e => {
+  const key = e.target.closest(".tab")?.dataset.corpus;
+  if (key && key !== corpus && !busy) {
+    corpus = key;
+    document.querySelectorAll(".tab").forEach(t =>
+      t.classList.toggle("active", t.dataset.corpus === key));
+    renderCorpusView();
+  }
+});
+
 $("suggest").addEventListener("click", e => {
   const q = e.target.dataset?.q;
   if (q) { $("q").value = q; ask(q); }
 });
 
+// One delegated handler for document links and remove buttons, since both
+// tables are re-rendered constantly.
+document.addEventListener("click", e => {
+  const doc = e.target.closest("[data-doc]");
+  if (doc) { e.preventDefault(); showDoc(doc.dataset.doc); return; }
+  const del = e.target.closest("[data-del]");
+  if (del) { e.preventDefault(); deleteUpload(del.dataset.del); }
+});
+
+$("btn-pick").onclick = () => $("filein").click();
+$("filein").onchange = (e) => { uploadFiles(e.target.files); e.target.value = ""; };
+
+const drop = $("drop");
+["dragenter", "dragover"].forEach(evt =>
+  drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(evt =>
+  drop.addEventListener(evt, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => uploadFiles(e.dataTransfer.files));
+
 refreshState();
-loadCorpus();
 </script>
 </body>
 </html>

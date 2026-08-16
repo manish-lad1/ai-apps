@@ -13,3 +13,6 @@ __pycache__/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Documents uploaded through the web UI — never commit a user's own files
+uploads/
