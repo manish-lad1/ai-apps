@@ -1,0 +1,32 @@
+PASSPORT - BIOGRAPHICAL DATA PAGE
+Transcription for identity verification purposes
+
+Type:                   P
+Code of issuing state:  GBR
+Passport number:        548812903
+
+Surname:                MOSS
+Given names:            DECLAN PATRICK
+Nationality:            BRITISH CITIZEN
+Date of birth:          1985-12-05
+Sex:                    M
+Place of birth:         LIVERPOOL
+Date of issue:          2021-02-17
+Date of expiry:         2031-02-17
+Authority:              HM PASSPORT OFFICE
+
+Holder's signature on file: yes
+
+ENDORSEMENTS
+  None
+
+MACHINE READABLE ZONE
+P<GBRMOSS<<DECLAN<PATRICK<<<<<<<<<<<<<<<<<<<
+5488129034GBR8512052M3102177<<<<<<<<<<<<<<02
+
+VERIFICATION NOTES
+Checked against the original document on 2026-01-19 by S. Whitcombe.
+Document appears genuine and unaltered. Photograph is a good likeness.
+Copy retained for right to work purposes under reference RTW-2026-0044.
+
+This document is fictional and generated for demonstration purposes.

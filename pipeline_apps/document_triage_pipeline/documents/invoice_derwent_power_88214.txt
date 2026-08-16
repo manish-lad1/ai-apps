@@ -1,0 +1,31 @@
+DERWENT POWER SUPPLY LTD
+Business Energy Division
+Account enquiries: 0800 496 0117
+
+ELECTRICITY INVOICE
+
+Customer:        Kesterline Group plc
+Supply address:  Kesterline House, Reading
+Account number:  DP-4471-2280
+Invoice number:  INV-DP-88214
+Invoice date:    2026-03-05
+Payment due:     2026-03-26
+Billing period:  2026-02-01 to 2026-02-28
+Meter number:    K18Z4471003
+
+------------------------------------------------------------
+Reading at period start                        184,220 kWh
+Reading at period end                          198,640 kWh
+Consumption                                     14,420 kWh
+------------------------------------------------------------
+Day rate       9,860 kWh at 24.10 p/kWh          2,376.26
+Night rate     4,560 kWh at 17.40 p/kWh            793.44
+Standing charge      28 days at 78.00 p/day         21.84
+------------------------------------------------------------
+                                Subtotal         3,191.54
+                                VAT at 20%         638.31
+                                TOTAL DUE     GBP 3,829.85
+------------------------------------------------------------
+
+Payment by direct debit will be collected on the due date. This supply is
+on the Fixed Business 24 tariff, which ends on 2027-01-31.

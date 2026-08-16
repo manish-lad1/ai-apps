@@ -1,0 +1,31 @@
+INVOICE
+
+From:    Calder Systems Ltd
+         88 Riverbank Way, Glasgow
+         VAT registration: GB 662 4417 09
+
+Bill to: Halden Robotics Ltd
+         Sixth Floor, Tamarind House, Leeds
+
+Invoice number:  INV-CS-3310
+Invoice date:    2026-04-30
+Payment due:     2026-05-30
+Payment terms:   Net 30
+Purchase order:  PO-HR-2026-0518
+
+------------------------------------------------------------
+Description                        Qty     Unit      Amount
+------------------------------------------------------------
+Autonomous systems advisory,
+  April 2026, 4 days                 1   6,400.00    6,400.00
+Travel, Glasgow to Leeds             2     118.50      237.00
+------------------------------------------------------------
+                                    Subtotal        6,637.00
+                                    VAT at 20%      1,327.40
+                                    TOTAL DUE     GBP 7,964.40
+------------------------------------------------------------
+
+Advisory services were provided by Dr Helena Voss under the engagement
+described in our letter of intent, reference LOI-CAL-2026-03.
+
+Remit to: Calder Systems Ltd, sort code 82-19-04, account 40551123.

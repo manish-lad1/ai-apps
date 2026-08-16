@@ -58,12 +58,37 @@ class GroundingCase:
 
 
 CLASSIFICATION_CASES = [
+    # offer_letter
     ClassificationCase("offer_letter_amelia_hart.txt", frozenset({"offer_letter"})),
+    ClassificationCase("offer_letter_promotion_priya_raman.txt", frozenset({"offer_letter"})),
+    ClassificationCase("offer_letter_internship_jonah_pike.txt", frozenset({"offer_letter"})),
+    ClassificationCase(
+        "offer_letter_contractor_seren_vaughn.txt",
+        frozenset({"offer_letter", "contract"}),
+        note="an offer of a fixed term engagement — offer_letter is the better "
+        "fit, but contract is defensible",
+    ),
+    # invoice
     ClassificationCase("invoice_northgate_4820.txt", frozenset({"invoice"})),
+    ClassificationCase("invoice_brightwater_2291.txt", frozenset({"invoice"})),
+    ClassificationCase("invoice_calder_systems_3310.txt", frozenset({"invoice"})),
+    ClassificationCase("invoice_derwent_power_88214.txt", frozenset({"invoice"})),
+    # contract
+    ClassificationCase("nda_pinegrove_halden.txt", frozenset({"contract"})),
+    ClassificationCase("contract_msa_brightwater.txt", frozenset({"contract"})),
+    ClassificationCase("contract_employment_marcus_delaney.txt", frozenset({"contract"})),
+    ClassificationCase("contract_lease_carrow_park.txt", frozenset({"contract"})),
+    # medical_note
     ClassificationCase("medical_note_ravi_shah.txt", frozenset({"medical_note"})),
     ClassificationCase("discharge_summary_tomas_berg.txt", frozenset({"medical_note"})),
+    ClassificationCase("medical_referral_owen_castellan.txt", frozenset({"medical_note"})),
+    ClassificationCase("medical_note_leila_farouk.txt", frozenset({"medical_note"})),
+    # id_document
     ClassificationCase("driving_licence_elise_marchetti.txt", frozenset({"id_document"})),
-    ClassificationCase("nda_pinegrove_halden.txt", frozenset({"contract"})),
+    ClassificationCase("onboarding_record_nadia_okonkwo.txt", frozenset({"id_document"})),
+    ClassificationCase("id_passport_declan_moss.txt", frozenset({"id_document"})),
+    ClassificationCase("id_national_insurance_jonah_pike.txt", frozenset({"id_document"})),
+    # deliberately ambiguous
     ClassificationCase(
         "letter_of_intent_calder.txt",
         frozenset({"contract", "offer_letter"}),
@@ -79,6 +104,12 @@ EXTRACTION_CASES = [
     ExtractionCase("offer_letter_amelia_hart.txt", "amount", "78,500"),
     ExtractionCase("contract_msa_brightwater.txt", "reference", "MSA-BW-2026-014"),
     ExtractionCase("medical_note_ravi_shah.txt", "person_name", "Ravi Shah"),
+    ExtractionCase("invoice_calder_systems_3310.txt", "reference", "INV-CS-3310"),
+    ExtractionCase("invoice_derwent_power_88214.txt", "amount", "3,829.85"),
+    ExtractionCase("contract_lease_carrow_park.txt", "amount", "87,000"),
+    ExtractionCase("contract_employment_marcus_delaney.txt", "person_name", "Delaney"),
+    ExtractionCase("id_passport_declan_moss.txt", "person_name", "Moss"),
+    ExtractionCase("medical_referral_owen_castellan.txt", "person_name", "Owen Castellan"),
 ]
 
 GROUNDING_CASES = [
@@ -104,12 +135,36 @@ GROUNDING_CASES = [
         "wrong answer is right there in the retrieved context",
     ),
     GroundingCase(
-        "Who is the chief executive of Northgate Supplies?",
-        None,
+        "What is the annual salary of Marcus Delaney?",
+        "68,000",
+        note="requires two documents: he signs Amelia Hart's offer letter as "
+        "Head of People, and his own contract of employment holds the salary",
+    ),
+    GroundingCase(
+        "What is the annual rent on the premises at Carrow Business Park?",
+        "87,000",
+    ),
+    GroundingCase(
+        "What is Jonah Pike's National Insurance number?",
+        "QQ 34 71 08 B",
+        note="PII that IS in the corpus — the refusal cases only mean anything "
+        "if the model still answers when the fact is genuinely present",
     ),
     GroundingCase(
         "What is the late payment penalty on invoice INV-2026-0412?",
         None,
+    ),
+    GroundingCase(
+        "What is Declan Moss's home address?",
+        None,
+        note="the passport transcription gives his place of birth but never an "
+        "address, and other documents in the corpus do carry addresses",
+    ),
+    GroundingCase(
+        "How many days of annual leave does Seren Vaughn get?",
+        None,
+        note="the engagement letter states a day rate and working pattern but "
+        "is silent on leave, while three other offer letters do state it",
     ),
 ]
 

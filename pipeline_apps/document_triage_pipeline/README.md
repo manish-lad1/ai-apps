@@ -20,7 +20,18 @@ Nothing leaves the machine. No cloud API, no CDN, no telemetry — the models ru
 
 ### The corpus
 
-`documents/` holds 10 synthetic documents — offer letters, invoices, contracts, medical notes, and identity records. It deliberately includes one document whose type is genuinely ambiguous, two that share a reference so at least one question needs both, and one dense with personal data.
+`documents/` holds 21 synthetic documents — four of each classifiable type, plus one whose type is genuinely ambiguous:
+
+| Type | Count | Examples |
+|---|---|---|
+| `offer_letter` | 4 | employment offer, promotion, internship, interim engagement |
+| `invoice` | 4 | goods, consultancy, advisory, utility |
+| `contract` | 4 | master services agreement, NDA, employment contract, commercial lease |
+| `medical_note` | 4 | clinic consultation, discharge summary, GP referral, occupational health |
+| `id_document` | 4 | driving licence, passport page, HR onboarding record, NI number letter |
+| *ambiguous* | 1 | a letter of intent that is part offer, part contract |
+
+Entities recur across documents on purpose, so questions can require two sources: Marcus Delaney signs one offer letter and has his own employment contract; the Calder invoice bills against the letter of intent; Jonah Pike's internship offer and his National Insurance letter are separate files; Northgate's lease covers the address on its invoices.
 
 **All of it is fabricated for this demo.** Names, addresses, account numbers, passport numbers, NHS numbers, and NI numbers are invented. No real personal data appears anywhere in this repository.
 
@@ -175,7 +186,8 @@ The guardrail, which is the one worth demonstrating live. The corpus contains a 
 - **Small models fill flat schemas and ignore nested ones.** With the extracted fields nested under a `fields` object, Phi-4-mini returned it empty on all 10 documents while still writing a good summary. Flattened, it filled them in.
 - **Optional means omitted.** The model emits *only* the properties named in `required`. Every field it should attempt has to be required, with an empty-string convention for "not stated".
 - **Reasoning models need headroom to reach a tool call.** qwen3-4b spent its whole 200-token budget on `<think>` and got truncated before emitting the call. At 600 tokens it succeeded, having used 212.
-- **Bigger did not win.** The 4B reasoning model scored lower and ran five times slower than the 3.8B instruct model.
+- **Bigger did not win.** The 4B reasoning model matched the 3.8B instruct model's score and took four times as long to get there.
+- **A small corpus flatters a guardrail.** On 10 documents the refusal rate looked like 2/3. Adding 11 more documents — without touching the prompt — took it to 2/4, because the extra documents gave retrieval more near-misses to offer. The guardrail did not get worse; the test got honest.
 
 ### Model comparison
 
@@ -185,15 +197,17 @@ Run on an M5 Pro, 24 GB. **Run it yourself before choosing** — the answer depe
 .venv/bin/python evals/run_evals.py
 ```
 
+43 cases over the 21-document corpus:
+
 | Category | phi-4-mini | qwen3-4b |
 |---|---|---|
-| classification | 7/7 (100%) 5.3s | 6/7 (86%) 27.4s |
-| extraction | 6/6 (100%) 5.3s | 6/6 (100%) 27.4s |
-| grounding_answer | 3/3 (100%) 2.4s | 3/3 (100%) 8.0s |
-| grounding_refusal | 2/3 (67%) 2.2s | 2/3 (67%) 9.2s |
-| **Overall** | **18/19 (95%) 5.3s** | **17/19 (89%) 27.4s** |
+| classification | 21/21 (100%) 6.1s | 20/21 (95%) 23.3s |
+| extraction | 11/12 (92%) 6.1s | 12/12 (100%) 23.3s |
+| grounding_answer | 6/6 (100%) 2.5s | 6/6 (100%) 8.4s |
+| grounding_refusal | 2/4 (50%) 2.2s | 2/4 (50%) 7.6s |
+| **Overall** | **40/43 (93%) 6.1s** | **40/43 (93%) 23.3s** |
 
-Latency is the median per case. `phi-4-mini` goes on stage: better accuracy, and five times faster.
+Latency is the median per case. The two models are level on accuracy and `phi-4-mini` is roughly four times faster, so it goes on stage.
 
 ## Known constraints
 
@@ -242,12 +256,28 @@ Every stage calls `ensure_loaded()` first. This is the cold start you see on the
 
 Scanned PDFs are also rejected on upload: there is no OCR here, so a PDF with no embedded text layer reports that rather than indexing an empty document.
 
+### The grounding guardrail leaks when the subject's own document looks similar
+
+This is the most important limitation in the project, and the eval measures it rather than hiding it: **refusal passes 2 of 4 cases on both models.**
+
+The two that fail:
+
+- *"What is Declan Moss's home address?"* returns **Nadia Okonkwo's** address. Declan's passport transcription is the top-ranked passage (0.515) and is dense with identity fields, but holds no address; the only address in context belongs to someone else, and the model takes it.
+- *"How many days of annual leave does Seren Vaughn get?"* returns **28 days** from Marcus Delaney's employment contract, which out-ranked Seren's own engagement letter (0.380 against 0.377).
+
+The same question shape passes for Amelia Hart, so the guardrail is inconsistent rather than absent. It holds when the subject's own document contains nothing address-shaped, and breaks when that document is topically adjacent to the wrong answer.
+
+A stricter prompt was tried and rejected. It fixed the Seren Vaughn case and broke a valid one — the Carrow Business Park rent started returning `NOT FOUND` — leaving the score unchanged at 8/10 while making the demo refuse a fair question. Over-refusal reads as broken on stage, so the shipped prompt is the more permissive one.
+
+The real fix is architectural rather than a wording change: filter retrieved chunks to those whose text actually mentions the subject before they reach the prompt, or verify after the fact that the answer's source chunk names the subject. Both are in [Extension ideas](#extension-ideas).
+
 ### Remaining accuracy gaps
 
-Honest ones, visible in the eval output: on invoices Phi-4-mini puts the billed *company* in `person_name`, and it answers "who is the chief executive" from a `Head of People` signature line rather than refusing.
+On invoices Phi-4-mini puts the billed *company* in `person_name`. On the Calder invoice it extracts `reference` as `LOI-CAL-2026-03`, the letter-of-intent reference quoted in the body, rather than the invoice's own `INV-CS-3310` — a fair mistake, since the document carries two references and only the field definition says which one is wanted.
 
 ## Extension ideas
 
+- **Fix the guardrail leak properly.** Filter retrieved chunks to those whose text mentions the question's subject before building the prompt, or add a verification pass that checks the answering chunk names the subject. This is the highest-value change in the list — see [Known constraints](#the-grounding-guardrail-leaks-when-the-subjects-own-document-looks-similar).
 - Swap the JSON index for a real vector store once the corpus outgrows a linear scan.
 - Add a PII redaction stage between 1 and 2, using the `pii_types` Stage 1 already records.
 - Route by document type — send contracts to a clause extractor, invoices to a totals checker.
