@@ -370,45 +370,43 @@ def stage2(corpus_key: str) -> StreamingResponse:
     )
 
 
-# Below this much free memory, the two engines stop sharing the machine and
-# the idle chat model is evicted before the active one loads. Above it both
-# stay resident, which is what makes switching engines mid-demo instant
-# rather than a ten-second model load every time.
-MIN_FREE_BYTES_FOR_BOTH = 6 * 1024**3
-
-
-def _free_memory_bytes() -> int | None:
-    """Ask Foundry how much memory is actually free right now."""
-    try:
-        result = subprocess.run(
-            ["foundry", "status", "--output", "json"],
-            capture_output=True, text=True, timeout=30,
-        )
-        if result.returncode != 0:
-            return None
-        return json.loads(result.stdout)["system"]["availableMemoryBytes"]
-    except (json.JSONDecodeError, KeyError, OSError, subprocess.SubprocessError):
-        return None
-
-
-def _free_other_chat_model(keep_alias: str) -> None:
-    """Evict the other engine's chat model, but only if memory is tight.
-
-    The engines run different models — phi-4-mini and qwen3-4b — and together
-    with the embedding model that is about 7.2 GB. On a machine with room for
-    all three, unloading would make every engine switch pay a model load for
-    nothing, which is exactly the wrong trade during a live A/B comparison.
-    """
-    free = _free_memory_bytes()
-    if free is not None and free >= MIN_FREE_BYTES_FOR_BOTH:
-        return
-
+def _evict_other_chat_model(keep_alias: str) -> None:
+    """Unload the chat model the other engine uses, to make room for this one."""
     other = CHAT_COMPARISON_ALIAS if keep_alias == CHAT_ALIAS else CHAT_ALIAS
     try:
         client, _, _ = connect(keep_alias)
         unload(resolve_model_id(client, other))
     except FoundryUnavailable:
         pass
+
+
+def _open_engine(engine: str, model_alias: str) -> dict:
+    """Bring up one answering engine, evicting the other model only if needed.
+
+    Both chat models plus the embedding model fit comfortably on a 24 GB
+    machine, and when they do, switching engines mid-demo is instant. Evicting
+    on every switch would cost a ten-second model load each time for nothing.
+
+    So the eviction is a fallback rather than a precaution: try to open the
+    engine, and only if that fails — which is what running out of memory looks
+    like from here — free the other model and try once more.
+    """
+
+    def build() -> dict:
+        if engine == "agent-framework":
+            answerer = stage3_agentframework.AgentFrameworkAnswerer()
+            answerer.open()
+            return {"answerer": answerer, "model_id": answerer.chat_model_id}
+        clients = stage3_ask.open_clients(model_alias, quiet=True)
+        return {"clients": clients, "model_id": clients[1]}
+
+    try:
+        return build()
+    except Exception:  # noqa: BLE001 - retry once with the other model evicted
+        _evict_other_chat_model(
+            CHAT_COMPARISON_ALIAS if engine == "agent-framework" else model_alias
+        )
+        return build()
 
 
 @app.post("/api/ask")
@@ -447,15 +445,7 @@ def ask(request: AskRequest) -> dict:
 
         if not _ask_state:
             try:
-                if request.engine == "agent-framework":
-                    _free_other_chat_model(CHAT_COMPARISON_ALIAS)
-                    answerer = stage3_agentframework.AgentFrameworkAnswerer()
-                    answerer.open()
-                    engine_state = {"answerer": answerer, "model_id": answerer.chat_model_id}
-                else:
-                    _free_other_chat_model(request.model)
-                    clients = stage3_ask.open_clients(request.model, quiet=True)
-                    engine_state = {"clients": clients, "model_id": clients[1]}
+                engine_state = _open_engine(request.engine, request.model)
             except FoundryUnavailable as exc:
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
 
