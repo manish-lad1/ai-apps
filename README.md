@@ -59,7 +59,7 @@ Project folders follow `<artifact_or_domain>_<pattern_suffix>` — the first par
 | Project | What it does | Stack |
 |---|---|---|
 | [🧩 Idea Research Pipeline](./pipeline_apps/idea_research_pipeline/) | Turns a product idea into an approved research plan, fans out parallel agents to research each question, then generates a report that critiques and revises itself before flagging contradictions across sources | Claude API, Ollama, Next.js |
-| [🗂️ Document Triage Pipeline](./pipeline_apps/document_triage_pipeline/) | Classifies a folder of documents, extracts key fields and flags personal data behind a validating schema, embeds everything locally, then answers questions from retrieved context only — replying `NOT FOUND` rather than guessing. Runs entirely offline | Foundry Local, Phi-4-mini, Python, FastAPI |
+| [🗂️ Document Triage Pipeline](./pipeline_apps/document_triage_pipeline/) | Classifies a folder of documents, extracts key fields and flags personal data behind a validating schema, embeds everything locally, then answers questions from retrieved context only — replying `NOT FOUND` rather than guessing. Runs entirely offline | Foundry Local, Agent Framework, Phi-4-mini, Python, FastAPI |
 
 ---
 
