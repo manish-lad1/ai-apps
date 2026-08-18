@@ -91,7 +91,7 @@ Then open `http://127.0.0.1:8000`. The UI runs each stage with live progress, sh
 
 The UI serves two separate collections, switched by the tabs at the top:
 
-- **Demo corpus** — the curated ten. Read-only, and what the talk runs on.
+- **Demo corpus** — the curated 21. Read-only, and what the talk runs on.
 - **My documents** — drag in your own. They are classified, extracted, chunked, embedded, and become answerable, exactly like the demo set.
 
 Uploads accept `.txt`, `.md`, `.csv`, `.pdf`, `.docx`, `.rtf`, `.html`, and `.odt`, up to 20 MB each. Each collection keeps its own manifest and index, so uploading nothing disturbs the demo corpus or the eval suite. Uploads are gitignored.
@@ -112,9 +112,9 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Schema-validated extraction.** Every manifest record passes Pydantic validation. Failures get one corrective retry, then are recorded explicitly rather than dropped.
 - **Grounding guardrail.** Stage 3 refuses to answer outside retrieved context, including when the context holds the right kind of fact about the wrong person.
 - **Source attribution.** Every answer names the file it came from.
-- **Two-model comparison harness.** 19 cases across four categories, run against both chat models, with per-category pass rates and median latency.
+- **Two-model comparison harness.** 43 cases across four categories, run against both chat models, with per-category pass rates and median latency.
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
-- **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
+- **No vector database.** Twenty-one documents do not need one; the index is a JSON file and retrieval is a cosine sort.
 - **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
 - **Two answering engines, side by side.** Stage 3 runs on **Microsoft Agent Framework** by default, or on the raw `openai` client. Both use phi-4-mini, so the only variable is the stack. The framework path holds a conversation across turns; the raw path is stateless. Switch in the UI or with `--engine`. See [Agent Framework: where it works and where it does not](#agent-framework-where-it-works-and-where-it-does-not).
 - **Conversational follow-ups.** On the Agent Framework engine, "and what was the VAT on it?" resolves against the previous question. The raw engine has no memory and answers it from whatever retrieval happens to return — the contrast is one click apart.
@@ -139,6 +139,7 @@ documents/*.txt
       |
       v
   STAGE 3  embed question -> cosine top-4 -> grounded answer or NOT FOUND
+           either engine: Agent Framework (conversational) or raw client
 ```
 
 ### Stage 1, in detail
@@ -149,7 +150,7 @@ The tool definitions live in [`tools.py`](tools.py), kept separate because the p
 
 ### Retrieval
 
-Cosine similarity over 1024-dimensional vectors from `qwen3-embedding-0.6b`, top 4 chunks passed as numbered, filename-labelled context. Linear scan over ~11 chunks costs nothing.
+Cosine similarity over 1024-dimensional vectors from `qwen3-embedding-0.6b`, top 4 chunks passed as numbered, filename-labelled context. Linear scan over 23 chunks costs nothing.
 
 ## Example prompts
 
@@ -170,6 +171,21 @@ The guardrail, which is the one worth demonstrating live. The corpus contains a 
 ```bash
 .venv/bin/python run_demo.py --ask "What is Amelia Hart's home address?"
 ```
+
+The same question against the raw engine, to compare stacks on one answer:
+
+```bash
+.venv/bin/python run_demo.py --ask "What is the total due on invoice INV-2026-0412?" --engine raw
+```
+
+**Follow-up questions are a browser-only feature.** Each `--ask` is a fresh process, so the CLI has no conversation to remember. In the UI, on the Agent Framework engine, ask these in order and the pronouns resolve:
+
+1. What is the total due on invoice INV-2026-0412? → `GBP 4,820.00`
+2. And what was the VAT on it? → `GBP 776.00`
+3. Who was it billed to? → `Halden Robotics Ltd`
+4. What were the payment terms? → `Net 30`
+
+Switch to the raw engine and ask question 2 on its own to see the difference: with no memory, it answers from whichever invoice retrieval happens to surface.
 
 ## Design principles
 
@@ -274,7 +290,11 @@ Every stage calls `ensure_loaded()` first. This is the cold start you see on the
 
 ### Memory
 
-24 GB unified memory with roughly 6 GB free will not hold both chat models at once. The eval harness unloads one before loading the other. Stage 3 holds one chat model plus the 515 MB embedding model, which fits comfortably.
+Both chat models and the embedding model together are about 7.2 GB, and on a 24 GB machine all three stay resident — measured with 4.3 GB still free. Switching answering engines mid-demo therefore costs nothing, which is the point: the web server tries to open an engine and only evicts the other model if that actually fails, rather than unloading on principle and paying a ten-second model load on every switch.
+
+The eval harness is the exception and unloads deliberately, so each model's timings are measured without the other competing for memory.
+
+On a tighter machine, expect one chat model plus the 515 MB embedding model to be the working set.
 
 ### Uploaded documents are classified against a fixed six-type list
 
@@ -314,9 +334,10 @@ On invoices Phi-4-mini puts the billed *company* in `person_name`. On the Calder
 
 - [`tools.py`](tools.py) — the three tool definitions and why they are shaped this way
 - [`model_call.py`](model_call.py) — the streaming and `tool_choice` findings, in code
+- [`stage3_agentframework.py`](stage3_agentframework.py) — the Agent Framework engine, its conversation handling, and the two async traps behind it
 - [`foundry_endpoint.py`](foundry_endpoint.py) — port and model discovery
 - [`schemas.py`](schemas.py) — the validation contract
-- [`evals/cases.py`](evals/cases.py) — the 19 eval cases and what each is testing
+- [`evals/cases.py`](evals/cases.py) — the 43 eval cases and what each is testing
 - [`web/server.py`](web/server.py) — the local web UI's API, and how blocking stages are streamed as events
 - [Foundry Local documentation](https://learn.microsoft.com/azure/ai-foundry/foundry-local/)
 - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
