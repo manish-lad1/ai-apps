@@ -116,7 +116,8 @@ Individual stages, for recovering from a failure mid-demo without redoing the wo
 - **Offline proof.** `verify_offline.py` blocks every non-loopback socket and runs the whole pipeline through it.
 - **No vector database.** Ten documents do not need one; the index is a JSON file and retrieval is a cosine sort.
 - **Terminal or browser.** `run_demo.py` for the projector, `run_web.py` for a local web UI that streams stage progress over server-sent events and shows retrieval scores per answer. Same stage code behind both.
-- **Two answering engines, side by side.** Stage 3 runs either on the raw `openai` client with phi-4-mini, or on **Microsoft Agent Framework** with qwen3-4b. Same retrieval, same prompt, same grounding contract — switch engines in the UI or with `--engine` and compare answers and latency directly. See [Agent Framework: where it works and where it does not](#agent-framework-where-it-works-and-where-it-does-not).
+- **Two answering engines, side by side.** Stage 3 runs on **Microsoft Agent Framework** by default, or on the raw `openai` client. Both use phi-4-mini, so the only variable is the stack. The framework path holds a conversation across turns; the raw path is stateless. Switch in the UI or with `--engine`. See [Agent Framework: where it works and where it does not](#agent-framework-where-it-works-and-where-it-does-not).
+- **Conversational follow-ups.** On the Agent Framework engine, "and what was the VAT on it?" resolves against the previous question. The raw engine has no memory and answers it from whatever retrieval happens to return — the contrast is one click apart.
 - **Bring your own documents.** Drop PDFs, Word files, or plain text into the UI and they run through the identical three stages. PDF via `pypdf`, Word and RTF via the macOS `textutil` built-in — both entirely offline.
 
 ## How it works
@@ -227,20 +228,26 @@ The pin conflict is not resolvable by reinstalling. **Do not import from `agent_
 
 ### Agent Framework: where it works and where it does not
 
-**It works for generation.** Stage 3 can be answered entirely through Microsoft Agent Framework — [`stage3_agentframework.py`](stage3_agentframework.py) — against the same local endpoint, and you can switch to it live:
+**It works for generation, and it brings conversation.** Stage 3 runs through Agent Framework by default — [`stage3_agentframework.py`](stage3_agentframework.py) — against the same local endpoint and the same model as the raw path:
 
 ```bash
-.venv/bin/python run_demo.py --ask "What is the total due on invoice INV-2026-0412?" --engine agent-framework
+.venv/bin/python run_demo.py --ask "What is the total due on invoice INV-2026-0412?" --engine raw
 ```
 
-Measured over the ten grounding cases, with identical retrieval and an identical prompt:
+On single questions the two engines are indistinguishable in quality. Measured over the ten grounding cases with identical retrieval and prompt, when the framework path was still on qwen3-4b: 8/10 either way, same two failures, 3.3x slower. **The framework does not change what the model says.**
 
-| | raw `openai` + phi-4-mini | Agent Framework + qwen3-4b |
+Where it earns its place is the second question. The raw engine builds a fresh message list every time, so it has no idea what "it" means:
+
+| | Agent Framework | raw client |
 |---|---|---|
-| Grounding cases passed | 8/10 | 8/10 |
-| Median latency | **2.3s** | 7.7s |
+| "What is the total due on invoice INV-2026-0412?" | GBP 4,820.00 | GBP 4,820.00 |
+| "And what was the VAT **on it**?" | **GBP 776.00** | the VAT off an unrelated invoice |
+| "Who was **it** billed to?" | **Halden Robotics Ltd** | — |
+| "What were the payment terms?" | **Net 30** | — |
 
-Same score, same two failures, 3.3× slower. The framework does not change the answers; it changes the plumbing. That is the honest result and it is what the UI shows side by side.
+Two things make that work, and both were measured rather than assumed. The retrieval query is conversation-aware, because a follow-up embedded alone is a poor search — prepending the previous question lifted the right document from 0.339 to 0.591. And the model is phi-4-mini on both sides: qwen3-4b answered turn two correctly then collapsed on turn three into "The question is not the question" repeated until it hit the token ceiling, and the framework's own `ContextWindowCompactionStrategy` did not rescue it.
+
+Latency grows with the conversation as history accumulates — roughly 8s on the first question and 28s by the fourth.
 
 **It does not work for tool calling.** Stage 1 needs structured tool calls, and neither Agent Framework client can deliver them here:
 

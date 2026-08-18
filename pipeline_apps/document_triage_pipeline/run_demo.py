@@ -65,11 +65,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--engine",
         choices=("raw", "agent-framework"),
-        default="raw",
+        default="agent-framework",
         help=(
-            "Which stack answers in stage 3. 'raw' is the openai client on "
-            f"{CHAT_ALIAS}; 'agent-framework' is Microsoft Agent Framework on "
-            "qwen3-4b. Same retrieval either way."
+            "Which stack answers in stage 3. Both run "
+            f"{CHAT_ALIAS}: 'agent-framework' holds a conversation across "
+            "questions, 'raw' is stateless per question."
         ),
     )
     return parser.parse_args()

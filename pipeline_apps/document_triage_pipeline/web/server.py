@@ -63,10 +63,10 @@ class AskRequest(BaseModel):
     question: str
     corpus: str = "demo"
     model: str = CHAT_ALIAS
-    # "raw" is the openai client on phi-4-mini; "agent-framework" is Microsoft
-    # Agent Framework on qwen3-4b. Same retrieval, same prompt, different
-    # generation stack.
-    engine: str = "raw"
+    # Both engines run phi-4-mini, so the only variable is the stack:
+    # "agent-framework" is Microsoft Agent Framework and holds a conversation
+    # across turns; "raw" is the openai client and is stateless per question.
+    engine: str = "agent-framework"
 
 
 def _corpus(key: str) -> Corpus:
@@ -409,6 +409,16 @@ def _open_engine(engine: str, model_alias: str) -> dict:
         return build()
 
 
+@app.post("/api/conversation/reset")
+def reset_conversation() -> dict:
+    """Start a fresh conversation without unloading anything."""
+    with _ask_lock:
+        answerer = _ask_state.get("answerer")
+        if answerer is not None:
+            answerer.reset()
+    return {"reset": True}
+
+
 @app.post("/api/ask")
 def ask(request: AskRequest) -> dict:
     corpus = _corpus(request.corpus)
@@ -486,6 +496,10 @@ def ask(request: AskRequest) -> dict:
         "engine": request.engine,
         "engine_label": (
             "Agent Framework" if request.engine == "agent-framework" else "raw openai client"
+        ),
+        "conversational": request.engine == "agent-framework",
+        "turn": (
+            _ask_state["answerer"].turns if request.engine == "agent-framework" else 0
         ),
         "sources": ordered_sources,
         "retrieved": [

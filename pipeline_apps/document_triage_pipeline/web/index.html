@@ -225,8 +225,9 @@
     <h2>Ask <span id="ask-scope" class="tagline"></span></h2>
     <div class="engines" id="engines">
       <span class="lbl">Engine</span>
-      <button class="engine active" data-engine="raw">No framework<span class="sub">openai client · phi-4-mini</span></button>
-      <button class="engine" data-engine="agent-framework">Agent Framework<span class="sub">MS Agent Framework · qwen3-4b</span></button>
+      <button class="engine active" data-engine="agent-framework">Agent Framework<span class="sub">holds a conversation · phi-4-mini</span></button>
+      <button class="engine" data-engine="raw">No framework<span class="sub">stateless per question · phi-4-mini</span></button>
+      <button id="btn-newconv" class="ghost" style="font-size:13px;padding:6px 12px;margin-left:auto">New conversation</button>
     </div>
     <div class="askbar">
       <input id="q" placeholder="Ask a question about these documents…" autocomplete="off">
@@ -266,11 +267,12 @@ const DEMO_SUGGESTIONS = [
   ["Spans two documents", "What is the hourly rate in the agreement that invoice INV-BW-2291 was issued against?"],
   ["Should refuse", "What is Amelia Hart's home address?"],
   ["Same question, right person", "What is Nadia Okonkwo's home address?"],
-  ["Medical", "What medication was Ravi Shah started on?"],
+  ["Follow-up 1", "And what was the VAT on it?"],
+  ["Follow-up 2", "Who was it billed to?"],
 ];
 
 let corpus = "demo";
-let engine = "raw";
+let engine = "agent-framework";
 let serverState = null;
 let busy = false;
 const lastElapsed = {};   // keyed "<corpus>:stage1"
@@ -573,6 +575,7 @@ async function ask(question) {
         : `<b>Sources:</b> ${sources}`;
       meta.innerHTML += ` &nbsp;·&nbsp; ${d.seconds}s`
         + ` <span class="badge-engine">${esc(d.engine_label)}</span>`
+        + (d.conversational ? ` <span class="badge-engine">turn ${d.turn}</span>` : "")
         + ` <span class="badge-engine">${esc(d.model_id)}</span>`;
       card.appendChild(meta);
       $("log3").textContent = `Answered in ${d.seconds}s`;
@@ -673,6 +676,13 @@ $("tabs").addEventListener("click", e => {
   }
 });
 
+$("btn-newconv").onclick = async () => {
+  if (busy) return;
+  await fetch("/api/conversation/reset", { method: "POST" });
+  $("answers").innerHTML = "";
+  $("log3").textContent = "New conversation started.";
+};
+
 $("engines").addEventListener("click", e => {
   const chosen = e.target.closest(".engine")?.dataset.engine;
   if (chosen && chosen !== engine && !busy) {
@@ -681,9 +691,10 @@ $("engines").addEventListener("click", e => {
       b.classList.toggle("active", b.dataset.engine === engine));
     // The two engines use different chat models and the machine cannot hold
     // both, so the first question after a switch pays a model load.
+    $("btn-newconv").style.display = engine === "agent-framework" ? "" : "none";
     $("log3").textContent = engine === "agent-framework"
-      ? "Agent Framework selected — the first question will load qwen3-4b."
-      : "Raw client selected — the first question will load phi-4-mini.";
+      ? "Agent Framework — follow-up questions remember the conversation."
+      : "Raw client — every question is answered from scratch, with no memory.";
   }
 });
 
