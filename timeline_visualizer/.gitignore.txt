@@ -1,0 +1,23 @@
+# Claude Code worktrees
+.claude/worktrees/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Personal timeline exports — never commit real location data
+fixtures/real/
+*Timeline.json
+*location-history.json
+
+# OS
+.DS_Store
