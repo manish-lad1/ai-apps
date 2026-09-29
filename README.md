@@ -136,4 +136,4 @@ If you fork and build something cool, I'd love to hear about it.
 
 ---
 
-*Built by [Manish Lad](https://github.com/manish-lad1) · [LinkedIn](https://www.linkedin.com/in/manishlad) · [Newsletter](https://manishlad.substack.com)*
+*Built by [Manish Lad](https://github.com/manish-lad1) · [LinkedIn](https://www.linkedin.com/in/manish-lad) · [Newsletter](https://manishlad.substack.com)*
