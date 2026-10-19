@@ -174,3 +174,57 @@ def critic_prompt(lenses: list[Lens], ranking_lines: str, score_lines: str, back
         '{"approve": true, "objections": []}\n'
         '{"approve": false, "objections": [{"lens": "<lens id>", "feature_id": "F?", "reason": "should be LOWER/HIGHER because ..."}]}'
     )
+
+
+def _placeholder_ranking(n: int) -> str:
+    return "[" + ", ".join('"F?"' for _ in range(n)) + "]"
+
+
+def crew_opening_shape(lens: Lens, backlog: dict | None = None) -> str:
+    n = len(feature_ids(backlog))
+    return f'{{"lens": "{lens.id}", "ranking": {_placeholder_ranking(n)}, "objection": "<= 25 words"}}'
+
+
+def crew_position_shape(lens: Lens, backlog: dict | None = None) -> str:
+    n = len(feature_ids(backlog))
+    return (f'{{"lens": "{lens.id}", "ranking": {_placeholder_ranking(n)}, '
+            '"responses": [{"to_lens": "<another lens id>", "stance": "concede" or "rebut", '
+            '"reason": "<= 25 words"}]}')
+
+
+def crew_instructions(lens: Lens, lenses: list[Lens], backlog: dict | None = None) -> str:
+    """Crew member: same mandate as the scorer, but argues with the other lenses by name.
+
+    Spike findings applied: placeholder ids only (no copyable example ranking),
+    and round 2 asks for the specific claim being answered, because nemo
+    otherwise restates its own mandate instead of engaging.
+    """
+    n = len(feature_ids(backlog))
+    others = ", ".join(other.id for other in lenses if other.id != lens.id)
+    return (
+        f"You are the {lens.name} lens (id: {lens.id}) on a product prioritization panel.\n"
+        f"Your mandate: {lens.mandate}\n"
+        f"The other lenses on the panel: {others}. Their mandates:\n"
+        f"{lens_brief([o for o in lenses if o.id != lens.id])}\n\n"
+        f"Backlog (JSON):\n{backlog_block(backlog)}\n\n"
+        "The panel speaks in rounds, one lens at a time, in a fixed order. Every ranking lists all "
+        f"{n} feature ids exactly once, best first (replace each F? with a real id).\n\n"
+        "ROUND 1: state your full ranking and your strongest objection to the ranking you expect the "
+        "panel to converge on. Reply with JSON only:\n"
+        f'{{"lens": "{lens.id}", "ranking": {_placeholder_ranking(n)}, "objection": "<= 25 words"}}\n\n'
+        "LATER ROUNDS: answer at least one other lens BY ITS ID. In `reason`, name the specific claim or "
+        "ranking you are answering, then concede or rebut it. Then give your final ranking; change it if "
+        "an argument convinced you. Reply with JSON only:\n"
+        f'{{"lens": "{lens.id}", "ranking": {_placeholder_ranking(n)}, '
+        '"responses": [{"to_lens": "<another lens id>", "stance": "concede" or "rebut", '
+        '"reason": "<= 25 words"}]}'
+    )
+
+
+def crew_task() -> str:
+    """The message that opens the group chat.
+
+    The backlog lives in each member's instructions, not here, so the crew
+    works from any opening message (DevUI sends whatever is typed).
+    """
+    return "Rank the Tandem backlog for next quarter."

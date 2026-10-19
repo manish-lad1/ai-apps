@@ -86,7 +86,7 @@ def load_settings(env: dict | None = None, *, dotenv: bool = True) -> Settings:
         critic_model=model("CRITIC_MODEL", DEFAULT_LARGE),
         crew_model=model("CREW_MODEL", DEFAULT_LARGE),
         max_critic_rounds=_int(env, "MAX_CRITIC_ROUNDS", 2, minimum=0),
-        max_crew_rounds=_int(env, "MAX_CREW_ROUNDS", 2, minimum=1),
+        max_crew_rounds=_int(env, "MAX_CREW_ROUNDS", 2, minimum=2),  # round 1 states, later rounds answer
         temperature=float(env.get("TEMPERATURE", 0)),
         # Foundry Local 0.10.3 segfaults in its WebGPU backend under concurrent
         # requests (2 of 5 runs in Phase 1), and serializes them anyway. Keep 1.

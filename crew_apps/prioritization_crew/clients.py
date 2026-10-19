@@ -54,7 +54,11 @@ def concurrency_gate(limit: int):
 _foundry_gate = None
 
 
-def peer_view(me: str, turn_prompt: str = "Your turn, {me}. This is ROUND {round}. Reply with JSON only."):
+def default_turn_prompt(me: str, round_: int, peers: dict[str, str], own: str | None) -> str:
+    return f"Your turn, {me}. This is ROUND {round_}. Reply with JSON only."
+
+
+def peer_view(me: str, turn_prompt=default_turn_prompt):
     """Chat middleware for group chat members: show peers' turns as attributed user turns.
 
     Measured in the Phase 0 spike: the group chat hands each agent its peers'
@@ -62,25 +66,28 @@ def peer_view(me: str, turn_prompt: str = "Your turn, {me}. This is ROUND {round
     and mistral-nemo replied with an empty string on 7 of 8 turns. This
     rewrites peer turns as `[lens.x] said: ...` user messages, merges runs of
     one role (the Mistral template expects user/assistant alternation), and
-    ends on a user turn naming the speaker and round. The agent's own earlier
-    turns stay as assistant turns, which is how the round number is counted.
+    ends on a user turn from `turn_prompt(me, round, peers, own)`, where
+    `peers` maps each other member to its latest text and `own` is this
+    member's latest text. The agent's own earlier turns stay as assistant
+    turns, which is how the round number is counted.
     """
 
     @chat_middleware
     async def rewrite(context, call_next):
         turns: list[tuple[str, str]] = []
-        own_turns = 0
+        own_turns, own_latest, peers = 0, None, {}
         for m in context.messages:
             role, text = str(m.role), m.text or ""
             if role == "assistant" and m.author_name not in (None, me):
+                peers[m.author_name] = text
                 role, text = "user", f"[{m.author_name}] said:\n{text}"
             elif role == "assistant":
-                own_turns += 1
+                own_turns, own_latest = own_turns + 1, text
             if turns and turns[-1][0] == role and role != "system":
                 turns[-1] = (role, f"{turns[-1][1]}\n\n{text}")
             else:
                 turns.append((role, text))
-        nudge = turn_prompt.format(me=me, round=own_turns + 1)
+        nudge = turn_prompt(me, own_turns + 1, peers, own_latest)
         if turns and turns[-1][0] == "user":
             turns[-1] = ("user", f"{turns[-1][1]}\n\n{nudge}")
         else:
@@ -168,3 +175,28 @@ async def ask_json[M: BaseModel](
             raise ReplyError(
                 f"{agent.name}: invalid after one retry. First: {problem}. Retry: {again}. Reply was: {excerpt!r}"
             ) from again
+
+
+async def repair_json[M: BaseModel](
+    agent: Agent, bad_reply: str, model: type[M], *, context: dict | None = None, shape: str = ""
+) -> M:
+    """The one retry for a reply produced somewhere ask_json could not wrap (a group chat turn).
+
+    The bad reply and the problems go back to the same agent in a fresh session.
+    Pass an agent without peer_view: the repair is not a turn in the chat.
+    """
+    try:
+        return parse_reply(model, bad_reply, context)
+    except ReplyError as problem:
+        prompt = (
+            f"This reply of yours was not valid: {problem}.\n\nReply:\n{bad_reply}\n\n"
+            + (f"The required shape is:\n{shape}\n" if shape else "")
+            + "Reply again with corrected JSON only, keeping your position."
+        )
+        second = await agent.run(prompt, session=AgentSession())
+        try:
+            return parse_reply(model, second.text, context)
+        except ReplyError as again:
+            excerpt = " ".join((second.text or "").split())[:160]
+            raise ReplyError(f"{agent.name}: invalid after one retry. First: {problem}. Retry: {again}. "
+                             f"Reply was: {excerpt!r}") from again

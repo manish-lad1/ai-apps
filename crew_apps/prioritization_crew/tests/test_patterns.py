@@ -10,7 +10,7 @@ from lenses import LENS_IDS
 from patterns.agent import run_agent
 from patterns.pipeline import aggregate, build_pipeline, run_pipeline
 from readout import CallCounter, rice_check
-from run import main as run_main, parse_args
+from run import parse_args
 from schemas import LensScores
 
 IDS = ["F1", "F2", "F3", "F4", "F5", "F6"]
@@ -256,5 +256,6 @@ def test_cli_rejects_unknown_lens():
         parse_args(["--pattern", "pipeline", "--without", "vibes"])
 
 
-def test_cli_crew_not_built_yet():
-    assert run_main(["--pattern", "crew"]) == 2
+def test_cli_compare_excludes_pattern():
+    with pytest.raises(SystemExit):
+        parse_args(["--compare", "--pattern", "crew"])

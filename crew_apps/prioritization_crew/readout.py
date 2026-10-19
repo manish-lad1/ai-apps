@@ -33,6 +33,13 @@ TAXONOMY = {
     "relay": "_pipeline (on the group chat API): order matters, nobody contests",
 }
 
+# What each pattern's trace looks like, for the --compare table.
+TRACE_SHAPE = {
+    "agent": "1 agent call",
+    "pipeline": "fan-out → aggregate → critic ⟲ re-score",
+    "crew": "round-robin turns, each lens once per round",
+}
+
 console = Console()
 
 
@@ -120,8 +127,38 @@ def print_crew_notes(agreements: list[str], disagreements: list[Disagreement], b
     if disagreements:
         console.print("[yellow]disagreements (ranks differ by 2+)[/yellow]")
         for d in disagreements:
-            spread = "  ".join(f"{lens} #{rank}" for lens, rank in d.positions.items())
+            spread = "  ".join(f"{LENSES[lens].short if lens in LENSES else lens} #{rank}"
+                               for lens, rank in d.positions.items())
             console.print(f"  {names.get(d.feature_id, d.feature_id)}: {spread}")
+
+
+def print_exchanges(exchanges) -> None:
+    """Who answered whom in the crew, one short line each."""
+    if not exchanges:
+        console.print("[red]no lens answered another lens[/red]")
+        return
+    console.print("[bold]exchanges[/bold]")
+    for e in exchanges:
+        colour = "green" if e.stance == "concede" else "magenta"
+        console.print(f"  {e.lens} → {e.to_lens} [{colour}]{e.stance}[/{colour}]: [dim]{e.reason}[/dim]")
+
+
+def print_comparison(summaries, backlog: dict, without: str | None = None) -> None:
+    """--compare: the same backlog, three patterns, side by side."""
+    names = _names(backlog)
+    title = "same task, three patterns" + (f" (without {without})" if without else "")
+    table = Table(title=title, show_edge=False, header_style="bold")
+    table.add_column("feature", no_wrap=True)
+    for s in summaries:
+        table.add_column(s.pattern, justify="right")
+    for fid in [f["id"] for f in backlog["features"]]:
+        table.add_row(names[fid], *[f"#{s.ranking.rank_of()[fid]}" for s in summaries])
+    table.add_section()
+    table.add_row("model calls", *[str(s.model_calls) for s in summaries])
+    table.add_row("wall time", *[f"{s.wall_seconds:.0f}s" for s in summaries])
+    console.print(table)
+    for s in summaries:
+        console.print(f"[dim]{s.pattern} trace: {TRACE_SHAPE[s.pattern]}[/dim]")
 
 
 def print_rank_delta(with_all: Ranking, without: Ranking, lens: str, backlog: dict) -> None:

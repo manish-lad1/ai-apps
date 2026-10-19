@@ -170,10 +170,47 @@ class CriticVerdict(BaseModel):
 
 # --- Crew ------------------------------------------------------------------------
 
+def _check_ranking(v: list[str], info: ValidationInfo) -> list[str]:
+    if len(v) != len(set(v)):
+        raise ValueError(f"duplicate ids in ranking: {v}")
+    expected = _ctx(info, "feature_ids")
+    if expected is not None and sorted(v) != sorted(expected):
+        raise ValueError(f"ranking must list exactly {sorted(expected)}, got {v}")
+    return v
+
+
+class CrewOpening(BaseModel):
+    """Round 1 of the crew: a full ranking and the strongest objection to the likely consensus."""
+
+    lens: str
+    ranking: list[str]
+    objection: str
+
+    @field_validator("lens")
+    @classmethod
+    def _strip(cls, v: str) -> str:
+        return v.removeprefix("lens.")
+
+    @field_validator("ranking")
+    @classmethod
+    def _full_ranking(cls, v: list[str], info: ValidationInfo) -> list[str]:
+        return _check_ranking(v, info)
+
+    @field_validator("objection")
+    @classmethod
+    def _short(cls, v: str) -> str:
+        return _clip(v, RATIONALE_WORDS)
+
+
 class CrewResponse(BaseModel):
     to_lens: str
     stance: Literal["concede", "rebut"]
     reason: str
+
+    @field_validator("reason")
+    @classmethod
+    def _short(cls, v: str) -> str:
+        return _clip(v, RATIONALE_WORDS)
 
     @field_validator("to_lens")
     @classmethod
@@ -194,12 +231,7 @@ class CrewPosition(BaseModel):
     @field_validator("ranking")
     @classmethod
     def _full_ranking(cls, v: list[str], info: ValidationInfo) -> list[str]:
-        if len(v) != len(set(v)):
-            raise ValueError(f"duplicate ids in ranking: {v}")
-        expected = _ctx(info, "feature_ids")
-        if expected is not None and sorted(v) != sorted(expected):
-            raise ValueError(f"ranking must list exactly {sorted(expected)}, got {v}")
-        return v
+        return _check_ranking(v, info)
 
     @model_validator(mode="after")
     def _answers_a_peer(self, info: ValidationInfo) -> CrewPosition:
