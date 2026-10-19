@@ -1,0 +1,166 @@
+{
+  "model": "mistral-nemo-12b-instruct-generic-gpu",
+  "provider": "foundry",
+  "wall_s": 72.64416070797597,
+  "model_calls": 8,
+  "lens_turns": 8,
+  "context_per_call": [
+    {
+      "call": 1,
+      "n_messages": 1,
+      "authors": [
+        "user"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"rice\", \"ranking\": [\"F3\", \"F2\", \"F1\", \"F4\", \"F6\", \"F5\"], \"objection\": \"Effort might be underestimated for F2 and F6.\"}"
+    },
+    {
+      "call": 2,
+      "n_messages": 2,
+      "authors": [
+        "user",
+        "lens.rice"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"strategic_fit\", \"ranking\": [\"F2\", \"F3\", \"F1\", \"F4\", \"F6\", \"F5\"], \"objection\": \"F2 is this year's top bet, enterprise readiness.\"}"
+    },
+    {
+      "call": 3,
+      "n_messages": 3,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"effort_risk\", \"ranking\": [\"F5\", \"F1\", \"F3\", \"F6\", \"F4\", \"F2\"], \"objection\": \"F2's high effort and uncertainty outweighs its impact.\"}"
+    },
+    {
+      "call": 4,
+      "n_messages": 4,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"customer_pain\", \"ranking\": [\"F3\", \"F2\", \"F1\", \"F6\", \"F4\", \"F5\"], \"objection\": \"F3 and F2 have critical pain points, F1 is a close third.\"}"
+    },
+    {
+      "call": 5,
+      "n_messages": 5,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"rice\", \"ranking\": [\"F3\", \"F2\", \"F1\", \"F4\", \"F6\", \"F5\"], \"responses\": [{\"to_lens\": \"effort_risk\", \"stance\": \"rebut\", \"reason\": \"RICE score considers effort, not just risk.\"}]}"
+    },
+    {
+      "call": 6,
+      "n_messages": 6,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"strategic_fit\", \"ranking\": [\"F2\", \"F3\", \"F1\", \"F4\", \"F6\", \"F5\"], \"responses\": [{\"to_lens\": \"effort_risk\", \"stance\": \"concede\", \"reason\": \"Effort is high for F2, but enterprise readiness is critical.\"}]}"
+    },
+    {
+      "call": 7,
+      "n_messages": 7,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice",
+        "lens.strategic_fit"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"effort_risk\", \"ranking\": [\"F5\", \"F1\", \"F3\", \"F6\", \"F4\", \"F2\"], \"responses\": [{\"to_lens\": \"strategic_fit\", \"stance\": \"rebut\", \"reason\": \"Enterprise readiness can wait if it's high effort.\"}]}"
+    },
+    {
+      "call": 8,
+      "n_messages": 8,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"customer_pain\", \"ranking\": [\"F3\", \"F2\", \"F1\", \"F6\", \"F4\", \"F5\"], \"responses\": [{\"to_lens\": \"strategic_fit\", \"stance\": \"rebut\", \"reason\": \"Customer pain is immediate, enterprise readiness can wait.\"}]}"
+    }
+  ],
+  "round2_scores": [
+    {
+      "lens": "rice",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "effort_risk"
+      ]
+    },
+    {
+      "lens": "strategic_fit",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "concede"
+      ],
+      "targets": [
+        "effort_risk"
+      ]
+    },
+    {
+      "lens": "effort_risk",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "strategic_fit"
+      ]
+    },
+    {
+      "lens": "customer_pain",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "strategic_fit"
+      ]
+    }
+  ],
+  "transcript": [
+    {
+      "author": "group_chat_orchestrator",
+      "role": "assistant",
+      "text": "The group chat has reached the maximum number of rounds."
+    }
+  ]
+}

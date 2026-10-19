@@ -1,0 +1,166 @@
+{
+  "model": "mistral-nemo-12b-instruct-generic-gpu",
+  "provider": "foundry",
+  "wall_s": 69.48519012500765,
+  "model_calls": 8,
+  "lens_turns": 8,
+  "context_per_call": [
+    {
+      "call": 1,
+      "n_messages": 1,
+      "authors": [
+        "user"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"rice\", \"ranking\": [\"F4\", \"F1\", \"F6\", \"F2\", \"F5\", \"F3\"], \"objection\": \"F2's high impact may be overestimated, as SSO is table stakes for enterprise adoption.\"}"
+    },
+    {
+      "call": 2,
+      "n_messages": 2,
+      "authors": [
+        "user",
+        "lens.rice"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"strategic_fit\", \"ranking\": [\"F2\", \"F4\", \"F6\", \"F1\", \"F5\", \"F3\"], \"objection\": \"F2's enterprise readiness is this year's top bet, outweighing other themes.\"}"
+    },
+    {
+      "call": 3,
+      "n_messages": 3,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"effort_risk\", \"ranking\": [\"F5\", \"F1\", \"F4\", \"F6\", \"F3\", \"F2\"], \"objection\": \"F2's high effort and uncertainty make it a risky choice for this quarter.\"}"
+    },
+    {
+      "call": 4,
+      "n_messages": 4,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"customer_pain\", \"ranking\": [\"F3\", \"F2\", \"F4\", \"F1\", \"F6\", \"F5\"], \"objection\": \"F5's low impact despite high confidence and reach.\"}"
+    },
+    {
+      "call": 5,
+      "n_messages": 5,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"rice\", \"ranking\": [\"F4\", \"F1\", \"F6\", \"F2\", \"F5\", \"F3\"], \"responses\": [{\"to_lens\": \"strategic_fit\", \"stance\": \"rebut\", \"reason\": \"RICE score prioritizes F4's AI summary over F2's enterprise readiness.\"}]}"
+    },
+    {
+      "call": 6,
+      "n_messages": 6,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"strategic_fit\", \"ranking\": [\"F2\", \"F4\", \"F6\", \"F1\", \"F5\", \"F3\"], \"responses\": [{\"to_lens\": \"effort_risk\", \"stance\": \"concede\", \"reason\": \"Acknowledging F2's risk, but enterprise readiness is this year's top bet.\"}]}"
+    },
+    {
+      "call": 7,
+      "n_messages": 7,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice",
+        "lens.strategic_fit"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"effort_risk\", \"ranking\": [\"F1\", \"F4\", \"F6\", \"F3\", \"F5\", \"F2\"], \"responses\": [{\"to_lens\": \"strategic_fit\", \"stance\": \"rebut\", \"reason\": \"While enterprise readiness is important, F2's high effort and risk outweigh its strategic fit.\"}]}"
+    },
+    {
+      "call": 8,
+      "n_messages": 8,
+      "authors": [
+        "user",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk",
+        "lens.customer_pain",
+        "lens.rice",
+        "lens.strategic_fit",
+        "lens.effort_risk"
+      ],
+      "has_backlog": true,
+      "reply": "{\"lens\": \"customer_pain\", \"ranking\": [\"F3\", \"F2\", \"F4\", \"F1\", \"F6\", \"F5\"], \"responses\": [{\"to_lens\": \"rice\", \"stance\": \"rebut\", \"reason\": \"Customer pain in F3 and F2 outweighs reach and impact.\"}]}"
+    }
+  ],
+  "round2_scores": [
+    {
+      "lens": "rice",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "strategic_fit"
+      ]
+    },
+    {
+      "lens": "strategic_fit",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "concede"
+      ],
+      "targets": [
+        "effort_risk"
+      ]
+    },
+    {
+      "lens": "effort_risk",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "strategic_fit"
+      ]
+    },
+    {
+      "lens": "customer_pain",
+      "parsed": true,
+      "responses": 1,
+      "all_name_another_lens": true,
+      "stances": [
+        "rebut"
+      ],
+      "targets": [
+        "rice"
+      ]
+    }
+  ],
+  "transcript": [
+    {
+      "author": "group_chat_orchestrator",
+      "role": "assistant",
+      "text": "The group chat has reached the maximum number of rounds."
+    }
+  ]
+}

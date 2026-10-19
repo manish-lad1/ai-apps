@@ -1,0 +1,37 @@
+{
+  "small": "Phi-4-mini-instruct-generic-gpu",
+  "big": "mistral-nemo-12b-instruct-generic-gpu",
+  "load_s": {
+    "phi-4-mini": 10.465888208011165,
+    "mistral-nemo-12b-instruct": 27.06668666700716
+  },
+  "snapshots": [
+    {
+      "label": "baseline",
+      "sys_used_gb": 19.81,
+      "daemon_rss_gb": 0.36,
+      "foundry_available_gb": 4.17,
+      "loaded": 0,
+      "swap_used_gb": 11.17,
+      "pressure_free_pct": "35%"
+    },
+    {
+      "label": "after phi-4-mini (10.5s)",
+      "sys_used_gb": 19.77,
+      "daemon_rss_gb": 1.3,
+      "foundry_available_gb": 4.2,
+      "loaded": 1,
+      "swap_used_gb": 12.97,
+      "pressure_free_pct": "35%"
+    },
+    {
+      "label": "after mistral-nemo-12b-instruct (27.1s)",
+      "sys_used_gb": 19.84,
+      "daemon_rss_gb": 0.27,
+      "foundry_available_gb": 4.15,
+      "loaded": 2,
+      "swap_used_gb": 21.44,
+      "pressure_free_pct": "35%"
+    }
+  ]
+}

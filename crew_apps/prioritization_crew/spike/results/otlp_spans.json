@@ -1,0 +1,50 @@
+[
+  {
+    "service": "prioritization_crew.spike",
+    "name": "chat Phi-4-mini-instruct-generic-gpu",
+    "duration_ms": 16863.219,
+    "trace_id": "cb8d348df6487182663465aee9cec3d3",
+    "parent": "e6e06819eefd9365",
+    "attrs": {
+      "gen_ai.request.choice.count": 1,
+      "gen_ai.operation.name": "chat",
+      "server.address": "http://127.0.0.1:55138/v1/",
+      "gen_ai.request.model": "Phi-4-mini-instruct-generic-gpu",
+      "gen_ai.provider.name": "openai",
+      "gen_ai.response.id": "chat.id.1",
+      "gen_ai.response.finish_reasons": "[\"stop\"]",
+      "gen_ai.response.model": "Phi-4-mini-instruct-generic-gpu",
+      "gen_ai.usage.input_tokens": 635,
+      "gen_ai.usage.output_tokens": 201
+    }
+  },
+  {
+    "service": "prioritization_crew.spike",
+    "name": "invoke_agent lens.rice",
+    "duration_ms": 16863.625,
+    "trace_id": "cb8d348df6487182663465aee9cec3d3",
+    "parent": "715869146fdba772",
+    "attrs": {
+      "gen_ai.request.choice.count": 1,
+      "gen_ai.operation.name": "invoke_agent",
+      "gen_ai.request.temperature": false,
+      "gen_ai.agent.id": "bfe36e24-904d-4d3d-9cd1-cf6fc77bc694",
+      "gen_ai.agent.name": "lens.rice",
+      "gen_ai.request.model": "Phi-4-mini-instruct-generic-gpu",
+      "gen_ai.provider.name": "microsoft.agent_framework",
+      "gen_ai.response.finish_reasons": "[\"stop\"]",
+      "gen_ai.usage.input_tokens": 635,
+      "gen_ai.usage.output_tokens": 201
+    }
+  },
+  {
+    "service": "prioritization_crew.spike",
+    "name": "pattern.spike",
+    "duration_ms": 16863.798,
+    "trace_id": "cb8d348df6487182663465aee9cec3d3",
+    "parent": "",
+    "attrs": {
+      "pattern": "spike"
+    }
+  }
+]

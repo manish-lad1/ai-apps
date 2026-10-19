@@ -1,0 +1,37 @@
+{
+  "small": "Phi-4-mini-instruct-generic-gpu",
+  "big": "qwen3-14b-generic-gpu",
+  "load_s": {
+    "phi-4-mini": 8.817577584006358,
+    "qwen3-14b": 34.468456665985286
+  },
+  "snapshots": [
+    {
+      "label": "baseline",
+      "sys_used_gb": 19.17,
+      "daemon_rss_gb": 0.72,
+      "foundry_available_gb": 4.83,
+      "loaded": 0,
+      "swap_used_gb": 20.38,
+      "pressure_free_pct": "62%"
+    },
+    {
+      "label": "after phi-4-mini (8.8s)",
+      "sys_used_gb": 19.34,
+      "daemon_rss_gb": 2.33,
+      "foundry_available_gb": 4.66,
+      "loaded": 1,
+      "swap_used_gb": 23.49,
+      "pressure_free_pct": "39%"
+    },
+    {
+      "label": "after qwen3-14b (34.5s)",
+      "sys_used_gb": 19.87,
+      "daemon_rss_gb": 0.2,
+      "foundry_available_gb": 4.11,
+      "loaded": 2,
+      "swap_used_gb": 35.34,
+      "pressure_free_pct": "35%"
+    }
+  ]
+}
