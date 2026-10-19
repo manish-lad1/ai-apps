@@ -1,0 +1,110 @@
+{
+  "model": "Phi-4-mini-instruct-generic-gpu",
+  "first_try_ok": 10,
+  "ok_after_retry": 10,
+  "n": 10,
+  "total_s": 36.01613604099839,
+  "load_s": 8.158155416982481,
+  "rows": [
+    {
+      "i": 0,
+      "lens": "rice",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 4.1,
+      "raw": "{\n  \"lens\": \"rice\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High reach and confidence justify a mid-high score.\"},\n    {\"feature_id\": \"F2\", \"score\": 5, \"rationale\": \"High effort and low confidence temper the score.\"},\n    {\"feature_id\": \"F3\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F4\", \"score\": 7, \"rationale\": \"High reach and low confidence temper the score.\"},\n    {\"feature_id\": \"F5\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F6\", \"score\":"
+    },
+    {
+      "i": 1,
+      "lens": "strategic_fit",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.4,
+      "raw": "{\n  \"lens\": \"strategic_fit\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High mobile relevance and low effort.\"},\n    {\"feature_id\": \"F2\", \"score\": 10, \"rationale\": \"Directly ties to enterprise readiness and has high impact and confidence.\"},\n    {\"feature_id\": \"F3\", \"score\": 8, \"rationale\": \"Improvements in mobile usability and low effort.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Interesting but low confidence and effort outweighs impact.\"},\n    {\"feature_id\": \"F5\", \"score\": 7, \"rationale\": \"Good mobile relevance and low effort.\"},\n    {\"feature_id\": \"F6\", \"s"
+    },
+    {
+      "i": 2,
+      "lens": "effort_risk",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.7,
+      "raw": "{\n  \"lens\": \"effort_risk\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High reach and low effort makes it a low-risk and cheap improvement.\"},\n    {\"feature_id\": \"F2\", \"score\": 2, \"rationale\": \"High effort and uncertainty makes it a low-priority task.\"},\n    {\"feature_id\": \"F3\", \"score\": 9, \"rationale\": \"Low effort and high confidence makes it a low-risk and cheap improvement.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Moderate effort and uncertainty makes it a medium-priority task.\"},\n    {\"feature_id\": \"F5\", \"score\": 10, \"rationale\": \"Very low effort and high "
+    },
+    {
+      "i": 3,
+      "lens": "customer_pain",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.6,
+      "raw": "{\n  \"lens\": \"customer_pain\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 7, \"rationale\": \"Saves time in meetings, showing customer frustration in missing notes.\"},\n    {\"feature_id\": \"F2\", \"score\": 9, \"rationale\": \"High impact on security and auditability, blocking procurement and approval.\"},\n    {\"feature_id\": \"F3\", \"score\": 8, \"rationale\": \"Causing data loss and mistrust in mobile usage, greatly impacting meeting integrity.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Implied customer dissatisfaction and missed productivity opportunities.\"},\n    {\"feature_id\": \"F5\", \"score\": 6,"
+    },
+    {
+      "i": 4,
+      "lens": "rice",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.4,
+      "raw": "{\n  \"lens\": \"rice\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High reach and confidence justify a mid-high score.\"},\n    {\"feature_id\": \"F2\", \"score\": 5, \"rationale\": \"High effort and low confidence temper the score.\"},\n    {\"feature_id\": \"F3\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F4\", \"score\": 7, \"rationale\": \"High reach and low confidence temper the score.\"},\n    {\"feature_id\": \"F5\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F6\", \"score\":"
+    },
+    {
+      "i": 5,
+      "lens": "strategic_fit",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.6,
+      "raw": "{\n  \"lens\": \"strategic_fit\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High mobile relevance and low effort.\"},\n    {\"feature_id\": \"F2\", \"score\": 10, \"rationale\": \"Directly ties to enterprise readiness and has high impact and confidence.\"},\n    {\"feature_id\": \"F3\", \"score\": 8, \"rationale\": \"Improvements in mobile usability and low effort.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Interesting but low confidence and effort outweighs impact.\"},\n    {\"feature_id\": \"F5\", \"score\": 7, \"rationale\": \"Good mobile relevance and low effort.\"},\n    {\"feature_id\": \"F6\", \"s"
+    },
+    {
+      "i": 6,
+      "lens": "effort_risk",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.8,
+      "raw": "{\n  \"lens\": \"effort_risk\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High reach and low effort makes it a low-risk and cheap improvement.\"},\n    {\"feature_id\": \"F2\", \"score\": 2, \"rationale\": \"High effort and uncertainty makes it a low-priority task.\"},\n    {\"feature_id\": \"F3\", \"score\": 9, \"rationale\": \"Low effort and high confidence makes it a low-risk and cheap improvement.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Moderate effort and uncertainty makes it a medium-priority task.\"},\n    {\"feature_id\": \"F5\", \"score\": 10, \"rationale\": \"Very low effort and high "
+    },
+    {
+      "i": 7,
+      "lens": "customer_pain",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.6,
+      "raw": "{\n  \"lens\": \"customer_pain\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 7, \"rationale\": \"Saves time in meetings, showing customer frustration in missing notes.\"},\n    {\"feature_id\": \"F2\", \"score\": 9, \"rationale\": \"High impact on security and auditability, blocking procurement and approval.\"},\n    {\"feature_id\": \"F3\", \"score\": 8, \"rationale\": \"Causing data loss and mistrust in mobile usage, greatly impacting meeting integrity.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Implied customer dissatisfaction and missed productivity opportunities.\"},\n    {\"feature_id\": \"F5\", \"score\": 6,"
+    },
+    {
+      "i": 8,
+      "lens": "rice",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.4,
+      "raw": "{\n  \"lens\": \"rice\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High reach and confidence justify a mid-high score.\"},\n    {\"feature_id\": \"F2\", \"score\": 5, \"rationale\": \"High effort and low confidence temper the score.\"},\n    {\"feature_id\": \"F3\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F4\", \"score\": 7, \"rationale\": \"High reach and low confidence temper the score.\"},\n    {\"feature_id\": \"F5\", \"score\": 9, \"rationale\": \"High confidence and low effort justify a mid-high score.\"},\n    {\"feature_id\": \"F6\", \"score\":"
+    },
+    {
+      "i": 9,
+      "lens": "strategic_fit",
+      "first_try_ok": true,
+      "ok_after_retry": true,
+      "error": null,
+      "retry_error": null,
+      "seconds": 3.4,
+      "raw": "{\n  \"lens\": \"strategic_fit\",\n  \"scores\": [\n    {\"feature_id\": \"F1\", \"score\": 9, \"rationale\": \"High mobile relevance and low effort.\"},\n    {\"feature_id\": \"F2\", \"score\": 10, \"rationale\": \"Directly ties to enterprise readiness and has high impact and confidence.\"},\n    {\"feature_id\": \"F3\", \"score\": 8, \"rationale\": \"Improvements in mobile usability and low effort.\"},\n    {\"feature_id\": \"F4\", \"score\": 5, \"rationale\": \"Interesting but low confidence and effort outweighs impact.\"},\n    {\"feature_id\": \"F5\", \"score\": 7, \"rationale\": \"Good mobile relevance and low effort.\"},\n    {\"feature_id\": \"F6\", \"s"
+    }
+  ]
+}
