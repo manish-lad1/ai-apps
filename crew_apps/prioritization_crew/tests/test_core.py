@@ -104,7 +104,7 @@ def test_without_removes_exactly_one_lens():
 
 @pytest.mark.parametrize("prompt", [
     scorer_prompt(LENSES["rice"]),
-    rescore_prompt(LENSES["rice"], ["F2"], ["F2 is underrated"]),
+    rescore_prompt(LENSES["rice"], {"F2": 5}, ["F2 is underrated"]),
     ranker_prompt(active_lenses()),
 ])
 def test_format_examples_use_placeholder_ids(prompt):

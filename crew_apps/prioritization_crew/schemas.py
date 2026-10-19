@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field, ValidationError, ValidationInfo, field_va
 
 RATIONALE_WORDS = 25
 NOTE_WORDS = 20
+REASON_WORDS = 20
 
 
 def _clip(text: str, words: int) -> str:
@@ -40,6 +41,16 @@ class FeatureScore(BaseModel):
     feature_id: str
     score: int = Field(ge=1, le=10)
     rationale: str
+
+    @field_validator("score", mode="before")
+    @classmethod
+    def _round_fraction(cls, v):
+        # phi-4-mini sometimes scores 9.5 or 2.5 (seen in Phase 2). Round half
+        # up so the lens's order survives; out-of-range values like 0.5 still
+        # fail the 1-10 check and get the one retry.
+        if isinstance(v, float) and 1 <= v <= 10:
+            return int(v + 0.5)
+        return v
 
     @field_validator("rationale")
     @classmethod
@@ -118,6 +129,11 @@ class Objection(BaseModel):
     lens: str
     feature_id: str
     reason: str
+
+    @field_validator("reason")
+    @classmethod
+    def _short(cls, v: str) -> str:
+        return _clip(v, REASON_WORDS)
 
     @field_validator("lens")
     @classmethod

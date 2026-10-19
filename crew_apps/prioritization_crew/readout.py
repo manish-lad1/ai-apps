@@ -94,7 +94,7 @@ def print_ranking(ranking: Ranking, backlog: dict, lens_scores: dict[str, dict[s
     for lens_id in lens_scores or {}:
         table.add_column(LENSES[lens_id].short if lens_id in LENSES else lens_id, justify="right")
     table.add_column("total", justify="right")
-    table.add_column("note", style="dim", max_width=32)
+    table.add_column("note", style="dim", no_wrap=True)
     for r in ranking.ranked:
         cells = [str(lens_scores[lens_id].get(r.feature_id, "")) for lens_id in lens_scores or {}]
         table.add_row(str(r.rank), names.get(r.feature_id, r.feature_id), *cells, f"{r.total:g}", r.note)
@@ -136,6 +136,40 @@ def print_rank_delta(with_all: Ranking, without: Ranking, lens: str, backlog: di
         change = "=" if delta == 0 else (f"[green]+{delta}[/green]" if delta > 0 else f"[red]{delta}[/red]")
         table.add_row(names.get(fid, fid), str(before.get(fid, "-")), str(after[fid]), change)
     console.print(table)
+
+
+def rice_check(rice_lens_scores: dict[str, int], backlog: dict) -> tuple[float, int]:
+    """How far the RICE lens strays from the computed RICE order.
+
+    Counts feature pairs that the lens scored in the opposite order to their
+    rice_score (ties in the lens's scores count as half). Returns
+    (out_of_order, total_pairs). 0 means the lens followed the arithmetic.
+    """
+    rice = {f["id"]: f["rice_score"] for f in backlog["features"]}
+    ids = [fid for fid in rice if fid in rice_lens_scores]
+    wrong, pairs = 0.0, 0
+    for i, a in enumerate(ids):
+        for b in ids[i + 1:]:
+            if rice[a] == rice[b]:
+                continue
+            pairs += 1
+            hi, lo = (a, b) if rice[a] > rice[b] else (b, a)
+            if rice_lens_scores[hi] < rice_lens_scores[lo]:
+                wrong += 1
+            elif rice_lens_scores[hi] == rice_lens_scores[lo]:
+                wrong += 0.5
+    return wrong, pairs
+
+
+def print_rice_check(rice_lens_scores: dict[str, int], backlog: dict, model: str,
+                     before: dict[str, int] | None = None) -> None:
+    """One line: how many feature pairs the RICE lens put out of computed RICE order."""
+    wrong, pairs = rice_check(rice_lens_scores, backlog)
+    style = "green" if wrong == 0 else "yellow"
+    line = f"[{style}]RICE lens check[/{style}] {model}: {wrong:g}/{pairs} pairs out of order"
+    if before is not None and before != rice_lens_scores:
+        line += f" [dim](before critic: {rice_check(before, backlog)[0]:g}/{pairs})[/dim]"
+    console.print(line)
 
 
 # --- Run files -----------------------------------------------------------------

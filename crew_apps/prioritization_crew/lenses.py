@@ -89,7 +89,7 @@ def backlog_block(backlog: dict | None = None) -> str:
 
 # --- Prompts -------------------------------------------------------------------
 
-SCORE_SCALE = "Score 1-10: 10 = strongest under your lens, 1 = weakest. Use the full range."
+SCORE_SCALE = "Score each feature with a whole number from 1 to 10: 10 = strongest under your lens, 1 = weakest."
 
 
 def _placeholder_scores(ids: list[str]) -> str:
@@ -110,15 +110,25 @@ def scorer_prompt(lens: Lens, backlog: dict | None = None) -> str:
     )
 
 
-def rescore_prompt(lens: Lens, ids: list[str], objections: list[str], backlog: dict | None = None) -> str:
-    """Pipeline critic loop: one lens re-scores only the features a critic objected to."""
+def rescore_prompt(
+    lens: Lens, current: dict[str, int], objections: list[str], backlog: dict | None = None
+) -> str:
+    """Pipeline critic loop: one lens re-scores only the features a critic objected to.
+
+    The current scores are in the prompt: without them phi-4-mini, told to go
+    "LOWER", answered with a RICE-sized 800 (Phase 2).
+    """
+    ids = list(current)
     joined = "\n".join(f"- {o}" for o in objections)
+    now = ", ".join(f"{fid} = {score}" for fid, score in current.items())
     return (
         f"You are the {lens.name} lens on a product prioritization panel.\n"
         f"Mandate: {lens.mandate}\n{SCORE_SCALE}\n\n"
         f"Backlog (JSON):\n{backlog_block(backlog)}\n\n"
-        f"A critic objected to your scores:\n{joined}\n\n"
-        f"Re-score only {', '.join(ids)} under your lens. Keep a score if you still stand by it.\n"
+        f"Your current scores: {now}.\n"
+        f"A critic objected:\n{joined}\n\n"
+        f"Re-score only {', '.join(ids)} under your lens, each a whole number from 1 to 10. "
+        "Keep a score if you still stand by it.\n"
         "Reply with JSON only, in this shape (replace each F? with a real id):\n"
         f'{{"lens": "{lens.id}", "scores": {_placeholder_scores(ids)}}}'
     )
@@ -141,4 +151,26 @@ def ranker_prompt(lenses: list[Lens], backlog: dict | None = None) -> str:
         "features best first (rank 1 = do first). `note` names the lens that decided it.\n"
         "Reply with JSON only, in this shape (replace each F? with a real id):\n"
         f'{{"ranked": [{slots}]}}'
+    )
+
+
+def critic_prompt(lenses: list[Lens], ranking_lines: str, score_lines: str, backlog: dict | None = None) -> str:
+    """Pipeline critic: judge the ranking against the lens scores. It never re-scores itself."""
+    lens_ids = ", ".join(lens.id for lens in lenses)
+    return (
+        "You are the critic on a product prioritization pipeline. Lens scorers each scored "
+        "every feature 1-10; plain code summed the scores into a ranking.\n"
+        f"Lens mandates:\n{lens_brief(lenses)}\n\n"
+        f"Backlog (JSON):\n{backlog_block(backlog)}\n\n"
+        f"Lens scores (feature: score, rationale):\n{score_lines}\n\n"
+        f"Ranking:\n{ranking_lines}\n\n"
+        "Check each lens's scores against its OWN mandate only. Reach and impact matter only to the rice lens; "
+        "strategic_fit cares only about themes, effort_risk only about effort and confidence, customer_pain only "
+        "about the quotes. Object only where a score clearly contradicts its own lens's mandate (for example, "
+        "rice scores out of rice_rank order). Each reason must say whether the score should be HIGHER or LOWER "
+        "and why. At most 3 objections. If nothing clearly contradicts a mandate, approve.\n"
+        f"`lens` must be one of: {lens_ids}.\n"
+        "Reply with JSON only, in one of these shapes (replace F? with a real id):\n"
+        '{"approve": true, "objections": []}\n'
+        '{"approve": false, "objections": [{"lens": "<lens id>", "feature_id": "F?", "reason": "should be LOWER/HIGHER because ..."}]}'
     )

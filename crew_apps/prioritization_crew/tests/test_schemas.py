@@ -53,6 +53,16 @@ def test_lens_scores_out_of_range_rejected(ctx, bad):
         parse_reply(LensScores, dumps(lens_scores("rice", {**ALL_SIX, "F1": bad})), ctx)
 
 
+def test_fractional_scores_round_half_up(ctx):
+    parsed = parse_reply(LensScores, dumps(lens_scores("rice", {**ALL_SIX, "F1": 9.5, "F2": 2.5, "F3": 7.4})), ctx)
+    assert parsed.by_feature()["F1"] == 10 and parsed.by_feature()["F2"] == 3 and parsed.by_feature()["F3"] == 7
+
+
+def test_fractional_score_out_of_range_rejected(ctx):
+    with pytest.raises(ReplyError, match="score"):
+        parse_reply(LensScores, dumps(lens_scores("rice", {**ALL_SIX, "F6": 0.5})), ctx)
+
+
 def test_lens_scores_unknown_lens_rejected(ctx):
     with pytest.raises(ReplyError, match="lens must be one of"):
         parse_reply(LensScores, dumps(lens_scores("vibes", ALL_SIX)), ctx)

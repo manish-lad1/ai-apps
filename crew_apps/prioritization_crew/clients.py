@@ -164,4 +164,7 @@ async def ask_json[M: BaseModel](
         try:
             return parse_reply(model, second.text, context)
         except ReplyError as again:
-            raise ReplyError(f"{agent.name}: invalid after one retry. First: {problem}. Retry: {again}") from again
+            excerpt = " ".join((second.text or "").split())[:160]
+            raise ReplyError(
+                f"{agent.name}: invalid after one retry. First: {problem}. Retry: {again}. Reply was: {excerpt!r}"
+            ) from again

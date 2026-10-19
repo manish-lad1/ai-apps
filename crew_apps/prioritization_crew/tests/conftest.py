@@ -25,9 +25,11 @@ from lenses import LENS_IDS, feature_ids, load_backlog  # noqa: E402
 class FakeChatClient(ChatMiddlewareLayer, BaseChatClient):
     """Replies with queued strings in order; records every request it receives."""
 
-    def __init__(self, replies: list[str | dict], *, middleware=None, delay: float = 0.0) -> None:
+    def __init__(self, replies=(), *, responder=None, middleware=None, delay: float = 0.0) -> None:
+        """`replies` are returned in order; or `responder(messages) -> str | dict` decides per request."""
         super().__init__(middleware=middleware)
         self.replies = [r if isinstance(r, str) else json.dumps(r) for r in replies]
+        self.responder = responder
         self.requests: list[list[Message]] = []
         self.options: list[dict] = []
         self.delay = delay
@@ -45,9 +47,14 @@ class FakeChatClient(ChatMiddlewareLayer, BaseChatClient):
             await asyncio.sleep(self.delay)
         finally:
             self.in_flight -= 1
-        if not self.replies:
+        if self.responder is not None:
+            reply = self.responder(messages)
+            reply = reply if isinstance(reply, str) else json.dumps(reply)
+        elif self.replies:
+            reply = self.replies.pop(0)
+        else:
             raise AssertionError("FakeChatClient ran out of canned replies")
-        return ChatResponse(messages=[Message("assistant", [self.replies.pop(0)])])
+        return ChatResponse(messages=[Message("assistant", [reply])])
 
 
 @pytest.fixture
