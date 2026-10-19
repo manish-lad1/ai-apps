@@ -129,3 +129,56 @@ async def test_peer_view_first_turn_ends_on_user(settings):
     sent = [(str(m.role), m.text) for m in client.requests[0] if str(m.role) != "system"]
     assert [role for role, _ in sent] == ["user"]
     assert "ROUND 1" in sent[0][1]
+
+
+# --- Streaming: Foundry's per-chunk usage (seen in DevUI) -----------------------------
+
+from agent_framework import BaseChatClient, ChatMiddlewareLayer, ChatResponse, ChatResponseUpdate, Content  # noqa: E402
+from agent_framework import ResponseStream  # noqa: E402
+
+from clients import single_stream_usage  # noqa: E402
+
+
+class FoundryLikeStream(ChatMiddlewareLayer, BaseChatClient):
+    """Streams the way Foundry Local 0.10.3 does: cumulative usage before the text in every chunk."""
+
+    def __init__(self, words: list[str], *, middleware=None) -> None:
+        super().__init__(middleware=middleware)
+        self.words = words
+
+    def _inner_get_response(self, *, messages, stream, options, **kwargs):
+        async def updates():
+            for i, word in enumerate(self.words, 1):
+                usage = Content.from_usage(usage_details={"input_token_count": 10, "output_token_count": i,
+                                                          "total_token_count": 10 + i})
+                yield ChatResponseUpdate(role="assistant", contents=[usage, Content.from_text(word)],
+                                         response_id="chat.id.1", message_id="chat.id.1")
+            final = Content.from_usage(usage_details={"input_token_count": 10, "output_token_count": len(self.words),
+                                                      "total_token_count": 10 + len(self.words)})
+            yield ChatResponseUpdate(role="assistant", contents=[final], finish_reason="stop",
+                                     response_id="chat.id.1", message_id="chat.id.1")
+
+        return ResponseStream(updates(), finalizer=ChatResponse.from_updates)
+
+
+async def stream_through(client):
+    stream = client.get_response([Message("user", ["hi"])], stream=True)
+    chunks = [u async for u in stream]
+    return chunks, await stream.get_final_response()
+
+
+@pytest.mark.asyncio
+async def test_streamed_usage_appears_once_on_the_closing_chunk():
+    chunks, final = await stream_through(FoundryLikeStream(["Hello", ",", " world"], middleware=[single_stream_usage]))
+    usage_chunks = [c for c in chunks if any(x.type == "usage" for x in c.contents)]
+    assert len(usage_chunks) == 1 and usage_chunks[0].finish_reason == "stop"
+    # Text chunks carry only text, so DevUI keeps them in one content part.
+    assert all([x.type for x in c.contents] == ["text"] for c in chunks if c.finish_reason is None)
+    assert final.text == "Hello, world"
+    assert final.usage_details["output_token_count"] == 3 and final.usage_details["input_token_count"] == 10
+
+
+@pytest.mark.asyncio
+async def test_control_without_the_middleware_every_chunk_carries_usage():
+    chunks, _ = await stream_through(FoundryLikeStream(["Hello", ",", " world"]))
+    assert sum(any(x.type == "usage" for x in c.contents) for c in chunks) == 4
