@@ -54,6 +54,30 @@ def concurrency_gate(limit: int):
 _foundry_gate = None
 
 
+@chat_middleware
+async def single_stream_usage(context, call_next):
+    """Chat middleware: report usage once in a streamed Foundry reply, on the closing chunk.
+
+    Foundry Local 0.10.3 puts a cumulative `usage` item in front of the text
+    in every streamed chunk; OpenAI sends usage once, at the end. DevUI starts
+    a new content part after every non-text item, so replies rendered one
+    token per line, and it summed every chunk's usage (about 243,000 tokens
+    for one short reply). This drops usage from every chunk except the one
+    carrying `finish_reason`, whose figure is the final cumulative count, so
+    the framework's final usage stays correct. Non-streamed calls (run.py)
+    are untouched.
+    """
+    if context.stream:
+
+        def keep_closing_usage_only(update):
+            if update.finish_reason is None:
+                update.contents = [c for c in update.contents if c.type != "usage"]
+            return update
+
+        context.stream_transform_hooks.append(keep_closing_usage_only)
+    await call_next()
+
+
 def default_turn_prompt(me: str, round_: int, peers: dict[str, str], own: str | None) -> str:
     return f"Your turn, {me}. This is ROUND {round_}. Reply with JSON only."
 
@@ -112,7 +136,8 @@ def build_chat_client(spec: ModelSpec, settings: Settings, *, load: bool = True)
         # One gate for every Foundry model: the daemon is one process.
         _foundry_gate = _foundry_gate or concurrency_gate(settings.foundry_max_concurrency)
         client = OpenAIChatCompletionClient(
-            model=model_id, base_url=f"{base_url}/v1", api_key=LOCAL_API_KEY, middleware=[_foundry_gate]
+            model=model_id, base_url=f"{base_url}/v1", api_key=LOCAL_API_KEY,
+            middleware=[_foundry_gate, single_stream_usage],
         )
     elif spec.provider == "ollama":
         from agent_framework.ollama import OllamaChatClient
