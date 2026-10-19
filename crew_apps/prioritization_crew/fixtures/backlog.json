@@ -1,0 +1,95 @@
+{
+  "product": "Tandem",
+  "product_description": "Tandem is a fictional team note-taking app.",
+  "strategic_themes": [
+    {"name": "enterprise readiness", "priority": 1, "why": "This year's top bet: unlock sales to larger teams."},
+    {"name": "AI-assisted writing", "priority": 2, "why": "Differentiate the editor against generic note apps."},
+    {"name": "mobile", "priority": 3, "why": "Keep mobile usable; not a growth bet this year."}
+  ],
+  "features": [
+    {
+      "id": "F1",
+      "name": "Home-screen widget",
+      "description": "A phone home-screen widget showing today's shared notes and a quick-capture button.",
+      "reach": 12000,
+      "impact": 1,
+      "confidence": 90,
+      "effort": 2,
+      "strategic_theme": "mobile",
+      "customer_quotes": [
+        "Handy, I'd glance at it every morning.",
+        "Nice touch, but it wouldn't change how my team works."
+      ]
+    },
+    {
+      "id": "F2",
+      "name": "SSO and audit log",
+      "description": "SAML single sign-on plus an admin audit trail of who viewed and edited each note.",
+      "reach": 1500,
+      "impact": 3,
+      "confidence": 70,
+      "effort": 14,
+      "strategic_theme": "enterprise readiness",
+      "customer_quotes": [
+        "Our security team blocked the Tandem rollout until there's SSO.",
+        "No audit log means procurement won't sign."
+      ]
+    },
+    {
+      "id": "F3",
+      "name": "Offline conflict fix",
+      "description": "Stop notes edited offline on two devices from silently overwriting each other.",
+      "reach": 350,
+      "impact": 3,
+      "confidence": 95,
+      "effort": 3,
+      "strategic_theme": "mobile",
+      "customer_quotes": [
+        "I lost an entire board meeting's notes. Twice. I nearly quit over it.",
+        "I don't trust Tandem on a plane any more, so I take notes on paper."
+      ]
+    },
+    {
+      "id": "F4",
+      "name": "Smart paste cleanup",
+      "description": "Strip stray formatting when pasting from email or web pages into a note.",
+      "reach": 3000,
+      "impact": 0.5,
+      "confidence": 90,
+      "effort": 1,
+      "strategic_theme": "AI-assisted writing",
+      "customer_quotes": [
+        "Mildly annoying to fix pasted text, but I live with it.",
+        "Would save me a few clicks a day."
+      ]
+    },
+    {
+      "id": "F5",
+      "name": "AI thread summary",
+      "description": "One-click summary of a long comment thread on a note, with open questions highlighted.",
+      "reach": 6000,
+      "impact": 2,
+      "confidence": 50,
+      "effort": 9,
+      "strategic_theme": "AI-assisted writing",
+      "customer_quotes": [
+        "If it's accurate, this would save my Monday mornings.",
+        "I've been burned by AI summaries that missed the key decision."
+      ]
+    },
+    {
+      "id": "F6",
+      "name": "Admin usage dashboard",
+      "description": "A dashboard for workspace admins showing active users and storage per team.",
+      "reach": 800,
+      "impact": 1,
+      "confidence": 80,
+      "effort": 5,
+      "strategic_theme": "enterprise readiness",
+      "customer_quotes": [
+        "I report seat usage to finance every quarter by hand.",
+        "Useful for renewals, not urgent."
+      ]
+    }
+  ]
+}

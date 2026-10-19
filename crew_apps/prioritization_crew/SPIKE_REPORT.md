@@ -62,3 +62,9 @@ That is enough for the demo's point (removing a voice changes the result), but o
 
 - The trace was confirmed against a local OTLP/gRPC sink on `:4317`, not the Foundry Toolkit collector, because VS Code wasn't running. The export path and endpoint are identical; the Toolkit's view still needs checking.
 - Each crew configuration was run 2–3 times. Temperature 0 is close to deterministic on Foundry, but not exactly: the same nemo run produced slightly different text between runs.
+
+## Addendum from Phase 1 (live smoke test of the shared core)
+
+- **Concurrent requests crash Foundry Local 0.10.3.** Four concurrent phi-4-mini requests killed the daemon in 2 of 5 runs. The macOS crash report shows SIGSEGV in ONNX Runtime's WebGPU backend (`dawn::native::DeviceBase::CreateBindGroup` from `onnxruntime::webgpu::WebGpuContext::LaunchComputePipeline`). Concurrency also bought nothing: 25.0 s concurrent vs 25.3 s sequential. Fix: every Foundry client shares a chat middleware that caps requests in flight at `FOUNDRY_MAX_CONCURRENCY` (default 1). With it, 5 of 5 concurrent runs completed. The pipeline can still use the framework's concurrent fan-out; the HTTP calls just queue.
+- **phi-4-mini's RICE lens is still unreliable with `rice_score` and `rice_rank` provided.** For example, F5 (RICE rank 3) scored 2 and F3 (rank 4) scored 7. This is a Phase 2 decision.
+- **phi-4-mini as the single-agent ranker is weak.** It gave totals of 27–28 for all six features and attributed every note to "Strategic fit".
