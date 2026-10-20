@@ -128,8 +128,7 @@ async def crew(responder, *, without=None, **env):
     settings = load_settings({k.upper(): str(v) for k, v in env.items()}, dotenv=False)
     client = FakeChatClient(responder=responder)
     counter = CallCounter()
-    result = await run_crew(build_crew(client, settings, counter, without=without), client, settings, counter,
-                            without=without)
+    result = await run_crew(build_crew(client, settings, counter, without=without))
     return result, counter, client
 
 

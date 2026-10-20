@@ -137,3 +137,12 @@ def test_latest_full_run_ignores_without_runs(tmp_path):
         (tmp_path / f"{name}.json").write_text(json.dumps({"n": n}))
     assert latest_full_run("pipeline", tmp_path) == {"n": 2}
     assert latest_full_run("crew", tmp_path) is None
+
+
+def test_display_only_fields_never_reach_a_model():
+    """Phase 3: adding short_name to the prompt broke phi-4-mini's JSON. Prompts must stay as measured."""
+    from lenses import backlog_block, crew_instructions
+
+    assert "short_name" not in backlog_block()
+    assert "short_name" not in scorer_prompt(LENSES["customer_pain"])
+    assert "short_name" not in crew_instructions(LENSES["rice"], active_lenses())

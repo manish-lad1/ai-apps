@@ -13,7 +13,7 @@ import argparse
 import asyncio
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 from clients import build_chat_client
 from config import ModelSpec, Settings, load_settings
@@ -21,7 +21,9 @@ from foundry_endpoint import FoundryUnavailable
 from lenses import LENS_IDS, load_backlog
 from patterns.agent import run_agent
 from patterns.crew import build_crew, run_crew
+from patterns.crew import run_extra as crew_extra
 from patterns.pipeline import build_pipeline, run_pipeline
+from patterns.pipeline import run_extra as pipeline_extra
 from readout import (
     TAXONOMY,
     CallCounter,
@@ -37,7 +39,6 @@ from readout import (
     print_ranking,
     print_rice_check,
     print_stats,
-    rice_check,
     save_run,
 )
 from schemas import Ranking, ReplyError
@@ -102,37 +103,13 @@ async def run_once(pattern: str, without: str | None) -> RunSummary:
                                       counter, without=without)
             pipe = await run_pipeline(workflow)
             ranking, columns = pipe.ranking, pipe.score_table()
-            extra = {
-                "lens_scores": columns,
-                "lens_scores_before_critic": pipe.score_table(first=True),
-                "approved": pipe.approved,
-                "critic_rounds": pipe.critic_rounds,
-                "objections": [o.model_dump() for o in pipe.objections],
-                "rescores": [asdict(r) for r in pipe.rescores],
-                "verdicts": [v.model_dump() for v in pipe.verdicts],
-            }
-            if "rice" in columns:
-                wrong, pairs = rice_check(columns["rice"], backlog)
-                before, _ = rice_check(pipe.score_table(first=True)["rice"], backlog)
-                extra["rice_check"] = {"out_of_order_pairs": wrong, "before_critic": before, "pairs": pairs}
+            extra = pipeline_extra(pipe, backlog)
         else:
-            client = clients[settings.crew_model]
-            crew = await run_crew(build_crew(client, settings, counter, without=without), client, settings, counter,
-                                  without=without)
+            crew = await run_crew(build_crew(clients[settings.crew_model], settings, counter, without=without))
             ranking = crew.ranking
             finals = crew.final_rankings()
             columns = {lens: {fid: order.index(fid) + 1 for fid in order} for lens, order in finals.items()}
-            extra = {
-                "final_rankings": finals,
-                "opening_rankings": {lens: o.ranking for lens, o in crew.openings.items()},
-                "agreements": crew.outcome.agreements,
-                "disagreements": [d.model_dump() for d in crew.outcome.disagreements],
-                "exchanges": [asdict(e) for e in crew.exchanges],
-                "moved": crew.moved(),
-                "repaired": crew.repaired,
-                "fallbacks": crew.fallbacks,
-                "transcript": crew.turns,
-            }
+            extra = crew_extra(crew)
     flush()
 
     print_header(pattern, without)

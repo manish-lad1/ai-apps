@@ -81,10 +81,16 @@ def feature_ids(backlog: dict | None = None) -> list[str]:
     return [f["id"] for f in (backlog or load_backlog())["features"]]
 
 
+# Fixture fields for display only. Never shown to a model: adding `short_name` to
+# the prompt changed phi-4-mini's output enough to break its JSON (Phase 3).
+DISPLAY_ONLY_FIELDS = {"short_name"}
+
+
 def backlog_block(backlog: dict | None = None) -> str:
     """The backlog as every model sees it: themes plus features, compact JSON."""
     backlog = backlog or load_backlog()
-    return json.dumps({"strategic_themes": backlog["strategic_themes"], "features": backlog["features"]})
+    features = [{k: v for k, v in f.items() if k not in DISPLAY_ONLY_FIELDS} for f in backlog["features"]]
+    return json.dumps({"strategic_themes": backlog["strategic_themes"], "features": features})
 
 
 # --- Prompts -------------------------------------------------------------------

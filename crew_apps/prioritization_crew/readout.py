@@ -63,6 +63,13 @@ class CallCounter:
 
         return count
 
+    def mark(self) -> Counter:
+        """A snapshot to measure one run against, when agents outlive a run (DevUI)."""
+        return Counter(self.by_agent)
+
+    def since(self, mark: Counter) -> CallCounter:
+        return CallCounter(Counter({k: v - mark.get(k, 0) for k, v in self.by_agent.items() if v - mark.get(k, 0)}))
+
 
 class Timer:
     def __enter__(self) -> Timer:
@@ -248,3 +255,186 @@ def latest_full_run(pattern: str, runs_dir: Path | None = None) -> dict | None:
     runs_dir = runs_dir or RUNS_DIR
     candidates = sorted(runs_dir.glob(f"*_{pattern}.json")) if runs_dir.exists() else []
     return json.loads(candidates[-1].read_text()) if candidates else None
+
+
+# --- Text reports (DevUI) ------------------------------------------------------
+#
+# DevUI shows a workflow's final output in a narrow monospace box with no
+# markdown, and breaks long lines mid-word. These build plain text that reads
+# well there: tables fit in TEXT_WIDTH, and every other line is wrapped at word
+# boundaries. They take plain data, so patterns can call them without an import
+# cycle.
+
+TEXT_WIDTH = 52
+
+TEXT_TRACE_SHAPE = {
+    "agent": "one agent call",
+    "pipeline": "fan-out > aggregate > critic > re-score",
+    "crew": "round-robin turns, then Borda",
+}
+
+
+def _finish(lines: list[str]) -> str:
+    """Join report lines, wrapping long ones at word boundaries with an indent."""
+    import textwrap
+
+    out = []
+    for line in lines:
+        if len(line) <= TEXT_WIDTH:
+            out.append(line)
+            continue
+        indent = " " * (len(line) - len(line.lstrip()) + 2)
+        out += textwrap.wrap(line, TEXT_WIDTH, subsequent_indent=indent, break_long_words=False)
+    return "\n".join(out)
+
+
+def _short_names(backlog: dict) -> dict[str, str]:
+    return {f["id"]: f.get("short_name") or f["name"] for f in backlog["features"]}
+
+
+def _lens_label(lens_id: str) -> str:
+    return LENSES[lens_id].short if lens_id in LENSES else lens_id
+
+
+def text_header(pattern: str, without: str | None, calls: int, wall: float, by_agent: dict) -> list[str]:
+    title = pattern.upper() + (f"  without {without}" if without else "")
+    agents = ", ".join(f"{name.removeprefix('lens.')} {n}" for name, n in sorted(by_agent.items()))
+    return [title, TAXONOMY[pattern], "", f"model calls {calls}   wall time {wall:.1f}s", f"calls: {agents}", ""]
+
+
+def text_ranking(ranking: Ranking, backlog: dict, columns: dict[str, dict[str, int]] | None = None,
+                 *, as_ranks: bool = False, total_label: str = "total") -> list[str]:
+    """One row per feature: rank, short name, optional per-lens column, total."""
+    names = _short_names(backlog)
+    cols = list(columns or {})
+    lines = [f"{'#':>2} {'feature':<12}" + "".join(f"{_lens_label(c):>7}" for c in cols) + f"{total_label:>7}"]
+    for r in ranking.ranked:
+        cells = "".join(f"{('#' if as_ranks else '') + str(columns[c][r.feature_id]):>7}" for c in cols)
+        lines.append(f"{r.rank:>2} {names[r.feature_id]:<12}{cells}{r.total:>7g}")
+    return lines
+
+
+def text_rank_delta(full: Ranking, without_ranking: Ranking, lens: str, backlog: dict) -> list[str]:
+    names = _short_names(backlog)
+    before, after = full.rank_of(), without_ranking.rank_of()
+    lines = [f"Removal test: without {lens}", f"{'feature':<12}{'with':>6}{'without':>9}{'change':>8}"]
+    for fid in sorted(after, key=after.get):
+        delta = before[fid] - after[fid]
+        change = "=" if delta == 0 else f"{delta:+d}"
+        lines.append(f"{names[fid]:<12}{before[fid]:>6}{after[fid]:>9}{change:>8}")
+    return lines
+
+
+def _delta_block(full_ranking: Ranking | None, ranking: Ranking, without: str | None, backlog: dict,
+                 pattern: str) -> list[str]:
+    if not without:
+        return []
+    if full_ranking is None:
+        return ["", f"Removal test: run the full {pattern} first,", "then this again, to see the rank change."]
+    return ["", *text_rank_delta(full_ranking, ranking, without, backlog)]
+
+
+def text_rice_line(rice_scores: dict[str, int], backlog: dict, before: dict[str, int] | None = None) -> str:
+    wrong, pairs = rice_check(rice_scores, backlog)
+    line = f"RICE check: {wrong:g}/{pairs} pairs out of RICE order"
+    if before is not None and before != rice_scores:
+        line += f" (before critic {rice_check(before, backlog)[0]:g}/{pairs})"
+    return line
+
+
+def agent_text(ranking: Ranking, backlog: dict, *, calls: int, wall: float, by_agent: dict,
+               without: str | None, full_ranking: Ranking | None) -> str:
+    lines = text_header("agent", without, calls, wall, by_agent)
+    lines += text_ranking(ranking, backlog)
+    order = [r.feature_id for r in ranking.ranked]
+    if order == [f["id"] for f in backlog["features"]]:
+        lines += ["", "Note: this is the backlog's own order (F1-F6)."]
+    lines += _delta_block(full_ranking, ranking, without, backlog, "agent")
+    return _finish(lines)
+
+
+def pipeline_text(result, backlog: dict, *, calls: int, wall: float, by_agent: dict, without: str | None,
+                  max_rounds: int, full_ranking: Ranking | None) -> str:
+    """`result` is a patterns.pipeline.PipelineResult."""
+    names = _short_names(backlog)
+    scores = result.score_table()
+    lines = text_header("pipeline", without, calls, wall, by_agent)
+    lines += ["Lens scores (1-10) and their sum", *text_ranking(result.ranking, backlog, scores)]
+    if "rice" in scores:
+        lines += ["", text_rice_line(scores["rice"], backlog, result.score_table(first=True)["rice"])]
+    if result.approved is None:
+        lines += ["", "No critic (MAX_CRITIC_ROUNDS=0)."]
+    else:
+        verdict = "approved" if result.approved else "NOT approved"
+        lines += ["", f"Critic: {result.critic_rounds} of {max_rounds} reviews, {verdict}"]
+        if result.rescores:
+            lines.append("Re-scored after critic:")
+            for r in result.rescores:
+                outcome = f"invalid, kept {r.before}" if r.failed else f"{r.before} -> {r.after}"
+                lines.append(f"  {_lens_label(r.lens)} {names[r.feature_id]}: {outcome}")
+        if result.objections:
+            lines.append("Outstanding objections:")
+            for o in result.objections:
+                lines.append(f"  {_lens_label(o.lens)} on {names[o.feature_id]}: {o.reason}")
+    lines += _delta_block(full_ranking, result.ranking, without, backlog, "pipeline")
+    return _finish(lines)
+
+
+def crew_text(result, backlog: dict, *, calls: int, wall: float, by_agent: dict, without: str | None,
+              full_ranking: Ranking | None) -> str:
+    """`result` is a patterns.crew.CrewResult."""
+    names = _short_names(backlog)
+    finals = result.final_rankings()
+    ranks = {lens: {fid: order.index(fid) + 1 for fid in order} for lens, order in finals.items()}
+    lines = text_header("crew", without, calls, wall, by_agent)
+    lines += ["Each lens's final rank, Borda points", *text_ranking(result.ranking, backlog, ranks, as_ranks=True,
+                                                                    total_label="Borda")]
+    if "rice" in ranks:
+        lines += ["", text_rice_line({fid: len(ranks["rice"]) + 1 - r for fid, r in ranks["rice"].items()}, backlog)]
+    moved = result.moved()
+    lines += ["", f"Changed ranking after round 1: {len(moved)} of {len(result.finals)}"
+              + (f" ({', '.join(moved)})" if moved else "")]
+    if result.outcome.disagreements:
+        lines.append("Disagreements (ranks 2+ apart):")
+        for d in result.outcome.disagreements:
+            spread = " ".join(f"{_lens_label(lens)} #{rank}" for lens, rank in d.positions.items())
+            lines.append(f"  {names[d.feature_id]}: {spread}")
+    if result.outcome.agreements:
+        lines.append("Agreements:")
+        lines += [f"  {a}" for a in result.outcome.agreements]
+    if result.exchanges:
+        lines.append("Exchanges:")
+        for e in result.exchanges:
+            lines.append(f"  {e.lens} > {e.to_lens} {e.stance}: {e.reason}")
+    else:
+        lines.append("Exchanges: none (no lens answered another)")
+    if result.repaired:
+        lines.append(f"Needed the JSON retry: {', '.join(result.repaired)}")
+    if result.fallbacks:
+        lines.append(f"No valid final position, used round 1: {', '.join(result.fallbacks)}")
+    lines += _delta_block(full_ranking, result.ranking, without, backlog, "crew")
+    return _finish(lines)
+
+
+def compare_text(runs: dict[str, dict | None], backlog: dict) -> str:
+    """Side by side from saved run files: {pattern: run dict or None}."""
+    names = _short_names(backlog)
+    have = {p: r for p, r in runs.items() if r}
+    missing = [p for p, r in runs.items() if not r]
+    lines = ["COMPARE  latest full run of each pattern", ""]
+    if not have:
+        return _finish(lines + ["No runs yet. Run agent, pipeline and crew", "first, then compare."])
+    pats = list(have)
+    head = {"agent": "agent", "pipeline": "pipe", "crew": "crew"}
+    lines.append(f"{'feature':<12}" + "".join(f"{head.get(p, p):>8}" for p in pats))
+    ranks = {p: {r["feature_id"]: r["rank"] for r in have[p]["ranking"]["ranked"]} for p in pats}
+    for fid in [f["id"] for f in backlog["features"]]:
+        lines.append(f"{names[fid]:<12}" + "".join(f"{'#' + str(ranks[p][fid]):>8}" for p in pats))
+    lines.append("")
+    lines.append(f"{'model calls':<12}" + "".join(f"{have[p]['model_calls']:>8}" for p in pats))
+    lines.append(f"{'wall time':<12}" + "".join(f"{have[p]['wall_seconds']:>7.0f}s" for p in pats))
+    lines.append("")
+    lines += [f"{p}: {TEXT_TRACE_SHAPE.get(p, '')}" for p in pats]
+    if missing:
+        lines += ["", f"Not run yet: {', '.join(missing)}"]
+    return _finish(lines)
