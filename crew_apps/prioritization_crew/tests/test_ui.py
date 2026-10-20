@@ -202,3 +202,19 @@ async def test_crew_opens_with_the_same_task_whatever_is_typed():
     await outputs_of(build_crew(client, settings(), CallCounter(), ui=True), prompt="anything at all")
     first_request = " ".join(m.text or "" for m in client.requests[0])
     assert crew_task() in first_request and "anything at all" not in first_request
+
+
+@pytest.mark.asyncio
+async def test_same_crew_workflow_runs_twice_as_two_full_runs():
+    """DevUI bug: the second run started at the round limit and re-reported the first run."""
+    client = FakeChatClient(responder=crew_responder())
+    workflow = build_crew(client, settings(), CallCounter(), ui=True)
+    first = text_in(await outputs_of(workflow))
+    requests_after_first = len(client.requests)
+    second = text_in(await outputs_of(workflow))
+    assert "model calls 8" in first and "model calls 8" in second
+    assert len(client.requests) - requests_after_first == 8
+    # Each member starts the second run with no memory of the first: its first turn is ROUND 1 again.
+    second_run_first_request = " ".join(m.text or "" for m in client.requests[requests_after_first])
+    assert "This is ROUND 1" in second_run_first_request
+    assert sum("[lens." in (m.text or "") for m in client.requests[requests_after_first]) == 0
