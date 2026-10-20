@@ -307,8 +307,8 @@ class CrewOrchestrator(GroupChatOrchestrator):
     involved in that step, so there is still no manager or moderator model.
     """
 
-    def __init__(self, *, participant_registry, lenses: list[Lens], client: Any, settings: Settings,
-                 counter: CallCounter, without: str | None, ui: bool) -> None:
+    def __init__(self, *, participant_registry, members: list, lenses: list[Lens], client: Any,
+                 settings: Settings, counter: CallCounter, without: str | None, ui: bool) -> None:
         super().__init__(
             id=GroupChatBuilder.DEFAULT_ORCHESTRATOR_ID,
             participant_registry=participant_registry,
@@ -316,9 +316,27 @@ class CrewOrchestrator(GroupChatOrchestrator):
             name="round_robin",
             max_rounds=len(lenses) * settings.max_crew_rounds,
         )
+        self.members = members  # the members' AgentExecutors, to reset between runs
         self.lenses, self.client, self.settings, self.counter = lenses, client, settings, counter
         self.without, self.ui = without, ui
         self._started, self._calls_mark = time.perf_counter(), counter.mark()
+
+    def _start_fresh(self) -> None:
+        """Forget the previous run: this conversation, the round count, and every member's history.
+
+        DevUI keeps one workflow object and runs it many times; run.py builds a
+        new one per run. Without this, a second DevUI run started at the round
+        limit with the old turns still in place: one new call, then the previous
+        run's result again. agent-framework 1.22 has no public per-run reset,
+        so this clears the orchestrator's conversation and gives each member's
+        AgentExecutor a new session, empty cache and empty history.
+        """
+        self._clear_conversation()
+        self._round_index = 0
+        for member in self.members:
+            member._cache.clear()
+            member._full_conversation = []
+            member._session = member._agent.create_session()
 
     @property
     def input_types(self):
@@ -334,6 +352,7 @@ class CrewOrchestrator(GroupChatOrchestrator):
 
     async def _handle_messages(self, messages, ctx) -> None:
         # A new run starts here; one built workflow can run many times (DevUI).
+        self._start_fresh()
         self._started, self._calls_mark = time.perf_counter(), self.counter.mark()
         # Always open with the same task, whatever was typed. The agent and the
         # pipeline ignore their input too, and the crew's members are sensitive
@@ -376,7 +395,8 @@ class CrewBuilder(GroupChatBuilder):
         self._crew_kwargs = crew_orchestrator_kwargs
 
     def _resolve_orchestrator(self, participants):
-        return CrewOrchestrator(participant_registry=ParticipantRegistry(participants), **self._crew_kwargs)
+        return CrewOrchestrator(participant_registry=ParticipantRegistry(participants), members=list(participants),
+                                **self._crew_kwargs)
 
 
 def build_crew(client: Any, settings: Settings, counter: CallCounter, *, without: str | None = None,
