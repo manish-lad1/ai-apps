@@ -150,7 +150,32 @@ An hour before presenting, quit what you can and warm the models:
 .venv/bin/python warmup.py
 ```
 
-Run each pattern:
+### The demo, in DevUI
+
+Start DevUI (it loads both models, then opens http://127.0.0.1:8080):
+
+```bash
+.venv/bin/python devui_app.py
+```
+
+Everything from here happens in the browser. Pick an entry from the dropdown at the top left, click **Configure & Run**, type anything (for example `Rank the backlog.`) and click **Run Workflow**. Each entry ends on a **Workflow Complete** box with a readable report. What you type doesn't change the result: the backlog and the task are already in every prompt, so a demo can't drift because of wording.
+
+| # | Entry | Time | The report shows |
+|---|---|---|---|
+| 1 | `agent` | ~5 s | model calls and wall time, the ranking, and a note when it is just the backlog's own order |
+| 2 | `pipeline` | ~1–1.5 min | each lens's scores and their sum, the RICE check before and after the critic, the re-scores, the outstanding objections |
+| 3 | `crew` | ~1.5–2 min | each lens's final rank and the Borda points, the RICE check, how many lenses changed their mind, disagreements, every exchange |
+| 4 | `pipeline without customer_pain` | ~1 min | the same pipeline report with one lens gone, then the **removal test** table against the latest full pipeline run |
+| 5 | `crew without customer_pain` | ~1 min | the same crew report with one voice gone, then the removal test table against the latest full crew run |
+| 6 | `compare` | instant | the latest full agent, pipeline and crew runs side by side: ranks, model calls, wall time, trace shape |
+
+Run 1–3 before 4–6: the removal tables and the comparison read the runs those entries save to `runs/`. While the pipeline or crew is running, the Execution Timeline shows each step, and for the crew each member's turn. The **Traces** tab shows spans if a collector is running.
+
+The removed lens is `DEVUI_WITHOUT` (default `customer_pain`); set it in `.env` to remove a different one.
+
+### Or from the command line
+
+The same patterns, with the same results, for scripting or checking without a browser:
 
 ```bash
 .venv/bin/python run.py --pattern agent
@@ -176,13 +201,7 @@ The removal test. After a full run of the same pattern exists in `runs/`, this a
 .venv/bin/python run.py --pattern crew --without customer_pain
 ```
 
-DevUI with the agent, the pipeline and the crew (http://127.0.0.1:8080):
-
-```bash
-.venv/bin/python devui_app.py
-```
-
-Tests (105, all on a fake chat client, no models needed):
+Tests (125, all on a fake chat client, no models needed):
 
 ```bash
 .venv/bin/python -m pytest tests -q
@@ -202,6 +221,7 @@ Add `--no-trace` to `run.py` or `devui_app.py` to skip span export.
 | `MAX_CREW_ROUNDS` | `2` | crew rounds including round 1; minimum 2 |
 | `TEMPERATURE` | `0` | every agent |
 | `FOUNDRY_MAX_CONCURRENCY` | `1` | Foundry requests in flight; see [Known constraints](#concurrent-requests-crash-foundry-local-0103) |
+| `DEVUI_WITHOUT` | `customer_pain` | the lens DevUI's two "without" entries remove |
 | `ENABLE_TRACING` | `true` | export spans |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4317` | the collector |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `grpc` | only gRPC is supported |
@@ -210,7 +230,7 @@ Models are written `<provider>:<model id>`, where the provider is `foundry` or `
 
 ## Results
 
-Measured on 19 October 2026 on the M5 Pro (24 GB) with the defaults above, from the run files in `runs/`. Each figure is from runs of the final code for that pattern. Runs at temperature 0 were identical from one run to the next. Only wall time varied, because the machine was swapping heavily (see [Memory](#memory)).
+Measured on 19 October 2026 on the M5 Pro (24 GB) with the defaults above, from the run files in `runs/`. Each figure is from runs of the final code for that pattern. Runs at temperature 0 were identical from one run to the next. Only wall time varied, because the machine was swapping heavily (see [Memory](#memory)). On 20 October, every DevUI entry was rerun and gave the same rankings, call counts and removal tables as below.
 
 ### The three patterns
 
@@ -283,7 +303,7 @@ What worked and what didn't, on these models and this machine.
 4. **Re-scorers need their current score in the prompt.** Told only "should be LOWER", phi-4-mini re-scored F2 as **800**. With "Your current scores: F2 = 5" it answers in range. An invalid re-score now keeps the old score and says so, rather than failing the run.
 5. **The crew talks to each other, but nobody changes their mind.** Every round-2 turn answers another lens by id, and the rebuttals cite specific features ("RICE favors reach, but F3 & F2 address intense pain"). But no lens changed its ranking between rounds in any final-code run (0 of 4, four runs). Some rebuttals argue another lens's mandate (RICE: "F4's AI theme is strategic"). The crew's ranking is the four opening positions, Borda-counted. On these models, the "contest" changes the transcript, not the result.
 6. **The crew finds no agreement.** All six features have rank spreads of 2 or more. F1 and F3 tie on Borda points (13 each), and plain code breaks the tie by effort.
-7. **Prompt wording matters more than temperature.** Temperature 0 made every run identical. But small wording changes, and once a daemon restart, flipped outputs: integer scores became fractional (9.5, 0.5), and a concrete example ranking was copied word for word by both 12b models in the spike. Every format example uses placeholder ids (`"F?"`) for that reason.
+7. **Prompt wording matters more than temperature.** Temperature 0 made every run identical. But small wording changes, and once a daemon restart, flipped outputs: integer scores became fractional (9.5, 0.5), and a concrete example ranking was copied word for word by both 12b models in the spike. Every format example uses placeholder ids (`"F?"`) for that reason. Two more examples came up while building the DevUI view. Adding a display-only `short_name` field to the backlog JSON made phi-4-mini's customer-pain scorer write broken JSON twice in a row, so display fields are now kept out of every prompt. And opening the crew with "Rank the backlog." instead of the usual task gave a different crew ranking, so the crew now always opens with the same task, whatever is typed.
 
 ## Known constraints
 
@@ -293,7 +313,9 @@ Four concurrent phi-4-mini requests killed the daemon in 2 of 5 runs. The macOS 
 
 ### The group chat needs an adapter on local models
 
-See [Crew](#crew-patternscrewpy). Out of the box, `GroupChatBuilder` produced 7 empty turns out of 8 on mistral-nemo. Also, in `agent-framework-orchestrations` 1.3.2 the group chat's output is an `AgentResponse`, not the `list[Message]` its docstring describes, and the docstring's round-robin example indexes an `OrderedDict` by integer. The crew reads turns from participant outputs (`output_from="all"`).
+See [Crew](#crew-patternscrewpy). Out of the box, `GroupChatBuilder` produced 7 empty turns out of 8 on mistral-nemo. Also, in `agent-framework-orchestrations` 1.3.2 the group chat's output is an `AgentResponse`, not the `list[Message]` its docstring describes, and the docstring's round-robin example indexes an `OrderedDict` by integer.
+
+To make the crew's Borda result the workflow's final output, `CrewOrchestrator` subclasses the framework's `GroupChatOrchestrator`. It picks speakers the same way, and when the last round ends it runs the plain-code synthesis instead of yielding the stock "reached the maximum number of rounds" message. The builder only accepts a ready-made orchestrator, which needs a participant registry the builder creates, so `CrewBuilder` overrides `GroupChatBuilder._resolve_orchestrator`, and `ParticipantRegistry` is imported from a private module. Both are small, but both would break if the framework renames them.
 
 ### Memory
 
@@ -301,9 +323,12 @@ With no models loaded, the development machine was already using about 19.8 of 2
 
 ### DevUI
 
-- The pipeline and the crew both run in DevUI. The pipeline takes plain text. The crew's input is a structured `Message`: set `role` to `user` and put the text in `contents`.
-- DevUI shows the crew's conversation, not the Borda synthesis, which runs in `run.py`.
+- **The final output box stacks every output of a run** in one narrow, monospace box with no markdown, and breaks long lines mid-word. So in DevUI builds each pattern yields only a plain-text report, with tables kept within 52 characters and other lines wrapped at word boundaries. The crew's member turns are intermediate events: they show in the Execution Timeline, not in the final box.
+- **DevUI builds its input form from the start executor's input types and prefers `Message`.** The group chat's orchestrator accepts `Message`, which gave the crew a six-field form. `CrewOrchestrator` advertises only plain text, so all six entries take one text box.
+- **The agent is a one-step workflow in DevUI**, not a chat agent, so it runs the same way as the others and ends on a report. Its single executor is the ranker: no extra model and no extra step.
+- **Streamed replies needed a fix.** Foundry Local 0.10.3 puts a cumulative usage item in front of the text in every streamed chunk. DevUI starts a new content part after each non-text item and adds up every chunk's usage, so chat replies rendered one token per line, with token counts around 243,000. A chat middleware keeps usage only on the closing chunk. `run.py` doesn't stream and was never affected.
 - DevUI's own `instrumentation_enabled` turns on sensitive-data capture, so `devui_app.py` leaves it off and uses `telemetry.py` instead. Auth is off because DevUI binds to 127.0.0.1 only.
+- The DevUI terminal prints "Processor is already shutdown, ignoring call" lines during runs. They come from OpenTelemetry; every run still completes and its output is unaffected. The cause isn't investigated yet.
 
 ### Tracing was checked against a stand-in collector
 
@@ -325,7 +350,6 @@ The meta-package's connector tree kept pip resolving for more than 10 minutes. [
 
 - **Relay** (`patterns/relay.py`, not built): the same group chat API, but each agent refines the previous agent's ranking in turn. Order matters and nobody contests, so it is a pipeline. It would show that the topology doesn't decide the pattern.
 - **A stronger crew model.** In the spike, `qwen3-14b` engaged with specific claims better than mistral-nemo, but it needed `/no_think`, lenient JSON parsing, and more memory. Swapping `CREW_MODEL` is the cheapest test of whether "nobody changes their mind" is the model or the pattern.
-- Put the Borda synthesis inside the crew workflow as a final executor, so DevUI shows the crew's ranking too.
 - Compute the RICE lens in code and keep models for the judgement lenses, then compare the pipeline's critic behaviour.
 
 ## More detail

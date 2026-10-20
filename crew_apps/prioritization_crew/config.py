@@ -50,6 +50,7 @@ class Settings:
     max_crew_rounds: int
     temperature: float
     foundry_max_concurrency: int
+    devui_without: str
     enable_tracing: bool
     otlp_endpoint: str
     otlp_protocol: str
@@ -67,6 +68,14 @@ def _int(env: dict, key: str, default: int, minimum: int) -> int:
     value = int(env.get(key, default))
     if value < minimum:
         raise ValueError(f"{key} must be >= {minimum}, got {value}")
+    return value
+
+
+def _lens(value: str, key: str) -> str:
+    from lenses import LENS_IDS
+
+    if value not in LENS_IDS:
+        raise ValueError(f"{key}={value!r}: must be one of {', '.join(LENS_IDS)}")
     return value
 
 
@@ -91,6 +100,7 @@ def load_settings(env: dict | None = None, *, dotenv: bool = True) -> Settings:
         # Foundry Local 0.10.3 segfaults in its WebGPU backend under concurrent
         # requests (2 of 5 runs in Phase 1), and serializes them anyway. Keep 1.
         foundry_max_concurrency=_int(env, "FOUNDRY_MAX_CONCURRENCY", 1, minimum=1),
+        devui_without=_lens(env.get("DEVUI_WITHOUT") or "customer_pain", "DEVUI_WITHOUT"),
         enable_tracing=_bool(env.get("ENABLE_TRACING", "true")),
         otlp_endpoint=env.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"),
         otlp_protocol=env.get("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc"),

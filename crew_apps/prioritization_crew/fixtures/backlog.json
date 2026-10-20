@@ -2,14 +2,27 @@
   "product": "Tandem",
   "product_description": "Tandem is a fictional team note-taking app.",
   "strategic_themes": [
-    {"name": "enterprise readiness", "priority": 1, "why": "This year's top bet: unlock sales to larger teams."},
-    {"name": "AI-assisted writing", "priority": 2, "why": "Differentiate the editor against generic note apps."},
-    {"name": "mobile", "priority": 3, "why": "Keep mobile usable; not a growth bet this year."}
+    {
+      "name": "enterprise readiness",
+      "priority": 1,
+      "why": "This year's top bet: unlock sales to larger teams."
+    },
+    {
+      "name": "AI-assisted writing",
+      "priority": 2,
+      "why": "Differentiate the editor against generic note apps."
+    },
+    {
+      "name": "mobile",
+      "priority": 3,
+      "why": "Keep mobile usable; not a growth bet this year."
+    }
   ],
   "features": [
     {
       "id": "F1",
       "name": "Home-screen widget",
+      "short_name": "Widget",
       "description": "A phone home-screen widget showing today's shared notes and a quick-capture button.",
       "reach": 12000,
       "impact": 1,
@@ -24,6 +37,7 @@
     {
       "id": "F2",
       "name": "SSO and audit log",
+      "short_name": "SSO + audit",
       "description": "SAML single sign-on plus an admin audit trail of who viewed and edited each note.",
       "reach": 1500,
       "impact": 3,
@@ -38,6 +52,7 @@
     {
       "id": "F3",
       "name": "Offline conflict fix",
+      "short_name": "Offline fix",
       "description": "Stop notes edited offline on two devices from silently overwriting each other.",
       "reach": 350,
       "impact": 3,
@@ -52,6 +67,7 @@
     {
       "id": "F4",
       "name": "Smart paste cleanup",
+      "short_name": "Smart paste",
       "description": "Strip stray formatting when pasting from email or web pages into a note.",
       "reach": 3000,
       "impact": 0.5,
@@ -66,6 +82,7 @@
     {
       "id": "F5",
       "name": "AI thread summary",
+      "short_name": "AI summary",
       "description": "One-click summary of a long comment thread on a note, with open questions highlighted.",
       "reach": 6000,
       "impact": 2,
@@ -80,6 +97,7 @@
     {
       "id": "F6",
       "name": "Admin usage dashboard",
+      "short_name": "Admin dash",
       "description": "A dashboard for workspace admins showing active users and storage per team.",
       "reach": 800,
       "impact": 1,

@@ -21,11 +21,15 @@ the argument itself, not just one column of the sum.
 """
 
 import json
-from dataclasses import dataclass, field
+import time
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from agent_framework import Agent, AgentResponse, Workflow
-from agent_framework.orchestrations import GroupChatBuilder
+from agent_framework import Agent, Message, Workflow
+from agent_framework.orchestrations import GroupChatBuilder, GroupChatOrchestrator
+
+# Not re-exported by agent-framework-orchestrations 1.3.2, but needed to build an orchestrator.
+from agent_framework_orchestrations._base_group_chat_orchestrator import ParticipantRegistry
 
 from clients import make_agent, peer_view, repair_json
 from config import Settings
@@ -40,7 +44,7 @@ from lenses import (
     feature_ids,
     load_backlog,
 )
-from readout import CallCounter
+from readout import CallCounter, crew_text, latest_full_run, save_run
 from schemas import (
     CrewOpening,
     CrewOutcome,
@@ -212,51 +216,36 @@ def round_robin(state) -> str:
     return names[state.current_round % len(names)]
 
 
-def build_crew(client: Any, settings: Settings, counter: CallCounter, *, without: str | None = None) -> Workflow:
-    lenses = active_lenses(without)
-    members = [
-        make_agent(lens.agent_name, crew_instructions(lens, lenses), client=client, settings=settings,
-                   counter=counter, max_tokens=800, middleware=[peer_view(lens.agent_name, crew_turn_prompt)])
-        for lens in lenses
-    ]
-    return GroupChatBuilder(
-        name="crew" + (f" without {without}" if without else ""),
-        participants=members,
-        selection_func=round_robin,
-        orchestrator_name="round_robin",
-        max_rounds=len(members) * settings.max_crew_rounds,
-        output_from="all",
-    ).build()
-
-
 def _repair_agent(lens: Lens, lenses: list[Lens], client: Any, settings: Settings, counter: CallCounter) -> Agent:
     # Same name and instructions, no peer_view: the repair is not a turn in the chat.
     return make_agent(lens.agent_name, crew_instructions(lens, lenses), client=client, settings=settings,
                       counter=counter, max_tokens=800)
 
 
-async def run_crew(
-    workflow: Workflow, client: Any, settings: Settings, counter: CallCounter, *, without: str | None = None
-) -> CrewResult:
-    lenses = active_lenses(without)
-    order = [lens.agent_name for lens in lenses]
-    context = {"feature_ids": feature_ids(), "lens_ids": [lens.id for lens in lenses]}
-
-    result = await workflow.run(crew_task())
-    replies = [o for o in result.get_outputs() if isinstance(o, AgentResponse)]
+def turns_from(conversation: list, order: list[str], rounds: int) -> list[dict]:
+    """The members' turns, in order, each tagged with its round (a member's nth turn is round n)."""
+    seen: dict[str, int] = {}
     turns = []
-    for i, reply in enumerate(replies):
-        authors = {m.author_name for m in reply.messages if m.author_name}
-        author = next(iter(authors & set(order)), None) or order[i % len(order)]
-        turns.append({"round": i // len(order) + 1, "author": author, "text": reply.text})
-    turns = [t for t in turns if t["author"] in order][: len(order) * settings.max_crew_rounds]
+    for message in conversation:
+        author = getattr(message, "author_name", None)
+        if author not in order:
+            continue
+        seen[author] = seen.get(author, 0) + 1
+        if seen[author] <= rounds:
+            turns.append({"round": seen[author], "author": author, "text": message.text or ""})
+    return turns
 
+
+async def analyse_turns(turns: list[dict], lenses: list[Lens], client: Any, settings: Settings,
+                        counter: CallCounter) -> CrewResult:
+    """Validate every turn (one repair each), then Borda the final positions. Plain code throughout."""
+    context = {"feature_ids": feature_ids(), "lens_ids": [lens.id for lens in lenses]}
+    by_name = {lens.agent_name: lens for lens in lenses}
     openings: dict[str, CrewOpening] = {}
     finals: dict[str, CrewPosition] = {}
     exchanges: list[Exchange] = []
     repaired: list[str] = []
     fallbacks: list[str] = []
-    by_name = {lens.agent_name: lens for lens in lenses}
 
     for turn in turns:
         lens = by_name[turn["author"]]
@@ -290,3 +279,130 @@ async def run_crew(
     final_rankings = {lens: p.ranking for lens, p in finals.items()}
     final_rankings.update({lens: openings[lens].ranking for lens in fallbacks})
     return CrewResult(synthesize(final_rankings), openings, finals, exchanges, repaired, fallbacks, turns)
+
+
+def run_extra(result: CrewResult) -> dict:
+    """What a saved crew run records beyond the ranking (run.py and DevUI share it)."""
+    return {
+        "final_rankings": result.final_rankings(),
+        "opening_rankings": {lens: o.ranking for lens, o in result.openings.items()},
+        "agreements": result.outcome.agreements,
+        "disagreements": [d.model_dump() for d in result.outcome.disagreements],
+        "exchanges": [asdict(e) for e in result.exchanges],
+        "moved": result.moved(),
+        "repaired": result.repaired,
+        "fallbacks": result.fallbacks,
+        "transcript": result.turns,
+    }
+
+
+class CrewOrchestrator(GroupChatOrchestrator):
+    """The framework's round-robin group chat orchestrator, ending in plain-code synthesis.
+
+    It picks speakers exactly as GroupChatOrchestrator does (with round_robin).
+    The only change is what happens when the last round ends: instead of the
+    stock "reached the maximum number of rounds" message, it validates every
+    turn, runs the Borda count, and yields the crew's answer as the workflow's
+    final output: the CrewResult for run.py, or a text report for DevUI. No model is
+    involved in that step, so there is still no manager or moderator model.
+    """
+
+    def __init__(self, *, participant_registry, lenses: list[Lens], client: Any, settings: Settings,
+                 counter: CallCounter, without: str | None, ui: bool) -> None:
+        super().__init__(
+            id=GroupChatBuilder.DEFAULT_ORCHESTRATOR_ID,
+            participant_registry=participant_registry,
+            selection_func=round_robin,
+            name="round_robin",
+            max_rounds=len(lenses) * settings.max_crew_rounds,
+        )
+        self.lenses, self.client, self.settings, self.counter = lenses, client, settings, counter
+        self.without, self.ui = without, ui
+        self._started, self._calls_mark = time.perf_counter(), counter.mark()
+
+    @property
+    def input_types(self):
+        """Advertise plain text as the crew's input, not Message.
+
+        DevUI builds its input form from the start executor's input types and
+        prefers Message when offered, which gives a six-field form (role,
+        contents, author_name, ...). Leaving Message and list[Message] out makes
+        it a single text box, like the other patterns. The handlers are
+        unchanged; member replies still type-check on their edges.
+        """
+        return [t for t in super().input_types if t not in (Message, list[Message])]
+
+    async def _handle_messages(self, messages, ctx) -> None:
+        # A new run starts here; one built workflow can run many times (DevUI).
+        self._started, self._calls_mark = time.perf_counter(), self.counter.mark()
+        # Always open with the same task, whatever was typed. The agent and the
+        # pipeline ignore their input too, and the crew's members are sensitive
+        # to wording: "Rank the backlog." gave a different crew ranking.
+        await super()._handle_messages([Message("user", [crew_task()])], ctx)
+
+    async def _check_round_limit_and_yield(self, ctx) -> bool:
+        if not self._check_round_limit():
+            return False
+        order = [lens.agent_name for lens in self.lenses]
+        turns = turns_from(self._get_conversation(), order, self.settings.max_crew_rounds)
+        result = await analyse_turns(turns, self.lenses, self.client, self.settings, self.counter)
+        if not self.ui:
+            await ctx.yield_output(result)
+        else:
+            # DevUI stacks every output in one box, so the text report is the only one.
+            wall = time.perf_counter() - self._started
+            run_calls = self.counter.since(self._calls_mark)
+            backlog = load_backlog()
+            full = latest_full_run("crew") if self.without else None
+            save_run("crew", without=self.without, ranking=result.ranking, counter=run_calls, wall_seconds=wall,
+                     models={"crew": str(self.settings.crew_model)}, extra=run_extra(result))
+            await ctx.yield_output(crew_text(
+                result, backlog, calls=run_calls.total, wall=wall, by_agent=dict(run_calls.by_agent),
+                without=self.without, full_ranking=Ranking.model_validate(full["ranking"]) if full else None,
+            ))
+        return True
+
+
+class CrewBuilder(GroupChatBuilder):
+    """GroupChatBuilder that installs CrewOrchestrator.
+
+    The builder only accepts a ready-made orchestrator, and an orchestrator
+    needs the participant registry the builder creates, so the one place to
+    hook in is _resolve_orchestrator.
+    """
+
+    def __init__(self, *, crew_orchestrator_kwargs: dict, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._crew_kwargs = crew_orchestrator_kwargs
+
+    def _resolve_orchestrator(self, participants):
+        return CrewOrchestrator(participant_registry=ParticipantRegistry(participants), **self._crew_kwargs)
+
+
+def build_crew(client: Any, settings: Settings, counter: CallCounter, *, without: str | None = None,
+               ui: bool = False) -> Workflow:
+    """`ui=True` (DevUI) adds a saved run file and a plain-text report as the final output."""
+    lenses = active_lenses(without)
+    members = [
+        make_agent(lens.agent_name, crew_instructions(lens, lenses), client=client, settings=settings,
+                   counter=counter, max_tokens=800, middleware=[peer_view(lens.agent_name, crew_turn_prompt)])
+        for lens in lenses
+    ]
+    return CrewBuilder(
+        name="crew" + (f" without {without}" if without else ""),
+        participants=members,
+        selection_func=round_robin,  # what CrewOrchestrator uses; set here too so the builder validates
+        # DevUI: member turns are intermediate (visible in the timeline), so the final
+        # output box holds only the crew's report.
+        **({"intermediate_output_from": "all"} if ui else {"output_from": "all"}),
+        crew_orchestrator_kwargs={"lenses": lenses, "client": client, "settings": settings, "counter": counter,
+                                  "without": without, "ui": ui},
+    ).build()
+
+
+async def run_crew(workflow: Workflow) -> CrewResult:
+    result = await workflow.run(crew_task())
+    outputs = [o for o in result.get_outputs() if isinstance(o, CrewResult)]
+    if not outputs:
+        raise RuntimeError(f"crew finished without a result (state: {result.get_final_state()})")
+    return outputs[-1]
