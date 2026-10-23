@@ -6,8 +6,6 @@ Part of [ai-apps](../../), a collection of small, self-contained AI applications
 
 ## Demo
 
-> _GIF to be added._
-
 The whole demo runs in DevUI (see [The demo, in DevUI](#the-demo-in-devui)). Screenshots from a run on 23 October 2026; each report box scrolls, so some shots show its lower part.
 
 **1. Agent.** One step, one model call. The ranking is just the backlog's own order (F1–F6).
