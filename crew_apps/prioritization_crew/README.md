@@ -8,12 +8,47 @@ Part of [ai-apps](../../), a collection of small, self-contained AI applications
 
 > _GIF to be added._
 
-| Trace | Screenshot |
-|---|---|
-| Agent (3 spans) | _to be added_ |
-| Pipeline (about 56 spans) | _to be added_ |
-| Crew (about 243 spans) | _to be added_ |
-| Pipeline in DevUI | _to be added_ |
+The whole demo runs in DevUI (see [The demo, in DevUI](#the-demo-in-devui)). Screenshots from a run on 23 October 2026; each report box scrolls, so some shots show its lower part.
+
+**1. Agent.** One step, one model call. The ranking is just the backlog's own order (F1–F6).
+
+![The agent entry in DevUI: one ranker node and its report](docs/screenshots/1-agent.jpg)
+
+**2. Pipeline.** The graph: start fans out to four lens scorers, which fan in to the aggregator, then the critic, and back through re-score. The report shows each lens's scores and their sum.
+
+![The pipeline entry: its graph and the lens score table](docs/screenshots/2-pipeline.jpg)
+
+Further down the same report: the critic's two reviews, the re-scores (one kept after an invalid reply), and the objections still outstanding at the cap.
+
+![The pipeline report scrolled to the critic section](docs/screenshots/2b-pipeline-critic.jpg)
+
+DevUI's Traces tab: the run's OpenTelemetry spans, from `workflow.run` down to each lens agent, with token counts.
+
+![The Traces tab for a pipeline run](docs/screenshots/2c-pipeline-traces.jpg)
+
+**3. Crew.** Four lens agents in a round-robin group chat, then a Borda count. Each lens's final rank and the Borda points.
+
+![The crew entry: its report with each lens's final rank and Borda points](docs/screenshots/3-crew.jpg)
+
+The same report scrolled down: no lens changed its ranking after round 1, every feature is a disagreement, and the exchanges where lenses rebut each other by name.
+
+![The crew report scrolled to disagreements and exchanges](docs/screenshots/3b-crew-exchanges.jpg)
+
+One member's round-2 turn in the Execution Timeline: customer_pain rebuts rice and strategic_fit by name.
+
+![A crew member's turn in the Execution Timeline](docs/screenshots/3c-crew-turn.jpg)
+
+**4. Pipeline without customer_pain.** Three lens scorers in the graph, and the removal test: SSO + audit drops two places, Admin dash rises two.
+
+![The pipeline removal test: three scorers and the rank-change table](docs/screenshots/4-pipeline-without-pain.jpg)
+
+**5. Crew without customer_pain.** Three members in the graph, and the removal test: Smart paste jumps from third to first.
+
+![The crew removal test: three members and the rank-change table](docs/screenshots/5-crew-without-pain.jpg)
+
+**6. Compare.** The latest full run of each pattern side by side: ranks, model calls and wall time.
+
+![The compare entry: all three patterns side by side](docs/screenshots/6-compare.jpg)
 
 ## What it shows
 
@@ -169,7 +204,7 @@ Everything from here happens in the browser. Pick an entry from the dropdown at 
 | 5 | `crew without customer_pain` | ~1 min | the same crew report with one voice gone, then the removal test table against the latest full crew run |
 | 6 | `compare` | instant | the latest full agent, pipeline and crew runs side by side: ranks, model calls, wall time, trace shape |
 
-Run 1–3 before 4–6: the removal tables and the comparison read the runs those entries save to `runs/`. While the pipeline or crew is running, the Execution Timeline shows each step, and for the crew each member's turn. The **Traces** tab shows spans if a collector is running.
+Run 1–3 before 4–6: the removal tables and the comparison read the runs those entries save to `runs/`. While the pipeline or crew is running, the Execution Timeline shows each step, and for the crew each member's turn. The **Traces** tab (in the right-hand debug panel) shows the run's OpenTelemetry spans, which DevUI records itself whether or not a collector is running.
 
 The removed lens is `DEVUI_WITHOUT` (default `customer_pain`); set it in `.env` to remove a different one.
 
