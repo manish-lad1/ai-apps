@@ -438,3 +438,48 @@ def compare_text(runs: dict[str, dict | None], backlog: dict) -> str:
     if missing:
         lines += ["", f"Not run yet: {', '.join(missing)}"]
     return _finish(lines)
+
+
+THEME_LABELS = {"enterprise readiness": "enterpr", "AI-assisted writing": "AI writ", "mobile": "mobile"}
+
+
+def backlog_text(backlog: dict) -> str:
+    """The six features being ranked, the numbers the lenses use, and the four lenses.
+
+    Display only: nothing here is sent to a model.
+    """
+    themes = sorted(backlog["strategic_themes"], key=lambda t: t["priority"])
+    lines = [
+        f"BACKLOG  {backlog['product']}, a fictional note-taking app",
+        "Six features to rank. All of it is made up.",
+        "",
+        "Strategic themes, by priority:",
+        *[f"  {t['priority']}. {t['name']}" for t in themes],
+        "",
+        f"{'id':<3}{'feature':<12}{'theme':<8}{'reach':>6}{'imp':>4}{'conf':>5}{'eff':>4}{'RICE':>6}",
+    ]
+    for f in backlog["features"]:
+        theme = THEME_LABELS.get(f["strategic_theme"], f["strategic_theme"][:7])
+        lines.append(f"{f['id']:<3}{f.get('short_name') or f['name']:<12}{theme:<8}{f['reach']:>6}"
+                     f"{f['impact']:>4g}{str(f['confidence']) + '%':>5}{f['effort']:>4}{int(f['rice_score'] + 0.5):>6}")
+    lines += [
+        "",
+        "reach = users per quarter, imp = impact (0.25-3),",
+        "conf = confidence, eff = effort (person-weeks),",
+        "RICE = reach x impact x confidence / effort",
+        "",
+        "Why the lenses disagree (by design)",
+        "  F1 Widget: best RICE, but the lowest theme",
+        "  F2 SSO: most strategic, and most expensive",
+        "  F3 Offline fix: most painful, smallest reach",
+        "  F4 Smart paste: cheap, safe, middling elsewhere",
+        "",
+        "The features",
+    ]
+    for f in backlog["features"]:
+        lines += ["", f"{f['id']} {f['name']}", f"  {f['description']}"]
+        lines += [f'  "{quote}"' for quote in f["customer_quotes"]]
+    lines += ["", "The four lenses (every pattern uses these words)"]
+    for lens in LENSES.values():
+        lines += ["", f"{lens.name} ({lens.id})", f"  {lens.mandate}"]
+    return _finish(lines)

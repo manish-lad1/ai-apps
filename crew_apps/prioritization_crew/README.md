@@ -162,6 +162,7 @@ Everything from here happens in the browser. Pick an entry from the dropdown at 
 
 | # | Entry | Time | The report shows |
 |---|---|---|---|
+| 0 | `backlog` | instant | the six features being ranked: themes, reach, impact, confidence, effort and RICE, why the lenses disagree, every customer quote, and the four lens mandates (display only; nothing here goes to a model) |
 | 1 | `agent` | ~5 s | model calls and wall time, the ranking, and a note when it is just the backlog's own order |
 | 2 | `pipeline` | ~1–1.5 min | each lens's scores and their sum, the RICE check before and after the critic, the re-scores, the outstanding objections |
 | 3 | `crew` | ~1.5–2 min | each lens's final rank and the Borda points, the RICE check, how many lenses changed their mind, disagreements, every exchange |
@@ -169,7 +170,7 @@ Everything from here happens in the browser. Pick an entry from the dropdown at 
 | 5 | `crew without customer_pain` | ~1 min | the same crew report with one voice gone, then the removal test table against the latest full crew run |
 | 6 | `compare` | instant | the latest full agent, pipeline and crew runs side by side: ranks, model calls, wall time, trace shape |
 
-Run 1–3 before 4–6: the removal tables and the comparison read the runs those entries save to `runs/`. While the pipeline or crew is running, the Execution Timeline shows each step, and for the crew each member's turn. The **Traces** tab shows spans if a collector is running.
+Start with 0 to show the audience what is being ranked. Run 1–3 before 4–6: the removal tables and the comparison read the runs those entries save to `runs/`. While the pipeline or crew is running, the Execution Timeline shows each step, and for the crew each member's turn. The **Traces** tab shows spans if a collector is running.
 
 The removed lens is `DEVUI_WITHOUT` (default `customer_pain`); set it in `.env` to remove a different one.
 
@@ -324,7 +325,7 @@ With no models loaded, the development machine was already using about 19.8 of 2
 ### DevUI
 
 - **The final output box stacks every output of a run** in one narrow, monospace box with no markdown, and breaks long lines mid-word. So in DevUI builds each pattern yields only a plain-text report, with tables kept within 52 characters and other lines wrapped at word boundaries. The crew's member turns are intermediate events: they show in the Execution Timeline, not in the final box.
-- **DevUI builds its input form from the start executor's input types and prefers `Message`.** The group chat's orchestrator accepts `Message`, which gave the crew a six-field form. `CrewOrchestrator` advertises only plain text, so all six entries take one text box.
+- **DevUI builds its input form from the start executor's input types and prefers `Message`.** The group chat's orchestrator accepts `Message`, which gave the crew a six-field form. `CrewOrchestrator` advertises only plain text, so every entry takes one text box.
 - **The agent is a one-step workflow in DevUI**, not a chat agent, so it runs the same way as the others and ends on a report. Its single executor is the ranker: no extra model and no extra step.
 - **Streamed replies needed a fix.** Foundry Local 0.10.3 puts a cumulative usage item in front of the text in every streamed chunk. DevUI starts a new content part after each non-text item and adds up every chunk's usage, so chat replies rendered one token per line, with token counts around 243,000. A chat middleware keeps usage only on the closing chunk. `run.py` doesn't stream and was never affected.
 - DevUI's own `instrumentation_enabled` turns on sensitive-data capture, so `devui_app.py` leaves it off and uses `telemetry.py` instead. Auth is off because DevUI binds to 127.0.0.1 only.

@@ -3,11 +3,13 @@
     python devui_app.py            # http://127.0.0.1:8080
     python devui_app.py --port 8090 --no-open
 
-Six entries, each run with Configure & Run (any input text works; the backlog
-is already in every prompt). Each ends on a plain-text report as its final
-output, and every run is saved to runs/ so the compare and removal tables
-have something to read:
+Seven entries, each run with Configure & Run (any input text works; the
+backlog is already in every prompt). Each ends on a plain-text report as its
+final output, and every run is saved to runs/ so the compare and removal
+tables have something to read:
 
+  0. backlog                        the six features, their numbers and the four lenses
+                                    (display only, no model calls)
   1. agent                          one model, all lenses, one call
   2. pipeline                       four lens scorers > aggregate > critic loop
   3. crew                           four lens agents, round-robin, then Borda
@@ -40,8 +42,24 @@ from lenses import load_backlog
 from patterns.agent import build_agent_workflow
 from patterns.crew import build_crew
 from patterns.pipeline import build_pipeline
-from readout import CallCounter, compare_text, console, latest_full_run
+from readout import CallCounter, backlog_text, compare_text, console, latest_full_run
 from telemetry import setup_tracing
+
+
+class ShowBacklog(Executor):
+    """Shows what is being ranked. Display only: no model sees this text."""
+
+    def __init__(self) -> None:
+        super().__init__(id="backlog")
+
+    @handler
+    async def show(self, prompt: str, ctx: WorkflowContext[Never, str]) -> None:
+        await ctx.yield_output(backlog_text(load_backlog()))
+
+
+def build_backlog() -> Workflow:
+    return WorkflowBuilder(start_executor=ShowBacklog(), name="backlog",
+                           description="The six features being ranked, and the four lenses").build()
 
 
 class CompareRuns(Executor):
@@ -69,6 +87,7 @@ def build_entities() -> list:
                                    clients[settings.crew_model])
     without = settings.devui_without
     return [
+        build_backlog(),
         build_agent_workflow(clients[settings.agent_model], settings, counter),
         build_pipeline(scorer, critic, settings, counter, ui=True),
         build_crew(crew_client, settings, counter, ui=True),
